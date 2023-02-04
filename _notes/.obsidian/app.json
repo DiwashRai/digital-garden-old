@@ -1,5 +1,6 @@
 {
   "strictLineBreaks": true,
   "useTab": false,
-  "showFrontmatter": false
+  "showFrontmatter": false,
+  "promptDelete": false
 }
