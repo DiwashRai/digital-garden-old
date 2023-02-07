@@ -1,5 +1,0 @@
----
-title: "Journaling"
-tags:
-- topic
----

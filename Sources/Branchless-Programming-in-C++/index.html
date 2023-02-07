@@ -1,0 +1,963 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><meta name=description content="Link: Branchless programming in C++ CppCon video
+Author: Fedor Pikus
+Topics: Software Engineering
+ Potential benefits Common code example 1:"><title>Branchless Programming in C++</title><meta name=viewport content="width=device-width,initial-scale=1"><link rel="shortcut icon" type=image/png href=https://diwashrai.github.io/digital-garden//icon.png><link href=https://diwashrai.github.io/digital-garden/styles.547fb332ce56cdc523146ba5ede80d7f.min.css rel=stylesheet><link href=https://diwashrai.github.io/digital-garden/styles/_light_syntax.86a48a52faebeaaf42158b72922b1c90.min.css rel=stylesheet id=theme-link><script src=https://diwashrai.github.io/digital-garden/js/darkmode.e7521685fecdfbca6dd54d07ef93b61b.min.js></script>
+<script src=https://diwashrai.github.io/digital-garden/js/util.a0ccf91e1937fe761a74da4946452710.min.js></script>
+<link rel=preload href=https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css as=style onload='this.onload=null,this.rel="stylesheet"' integrity=sha384-R4558gYOUz8mP9YWpZJjofhk+zx0AS11p36HnD2ZKj/6JR5z27gSSULCNHIRReVs crossorigin=anonymous><script defer src=https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js integrity=sha384-z1fJDqw8ZApjGO3/unPWUPsIymfsJmyrDVWC8Tv/a1HeOtGmkwNd/7xUS0Xcnvsx crossorigin=anonymous></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/contrib/auto-render.min.js integrity=sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR crossorigin=anonymous></script>
+<script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.2/dist/contrib/copy-tex.min.js integrity=sha384-ww/583aHhxWkz5DEVn6OKtNiIaLi2iBRNZXfJRiY1Ai7tnJ9UXpEsyvOITVpTl4A crossorigin=anonymous></script>
+<script async src=https://unpkg.com/@floating-ui/core@0.7.3></script>
+<script async src=https://unpkg.com/@floating-ui/dom@0.5.4></script>
+<script async src=https://diwashrai.github.io/digital-garden/js/popover.aa9bc99c7c38d3ae9538f218f1416adb.min.js></script>
+<script defer src=https://diwashrai.github.io/digital-garden/js/code-title.ce4a43f09239a9efb48fee342e8ef2df.min.js></script>
+<script defer src=https://diwashrai.github.io/digital-garden/js/clipboard.2913da76d3cb21c5deaa4bae7da38c9f.min.js></script>
+<script defer src=https://diwashrai.github.io/digital-garden/js/callouts.7723cac461d613d118ee8bb8216b9838.min.js></script>
+<script>const SEARCH_ENABLED=!1,LATEX_ENABLED=!0,PRODUCTION=!0,BASE_URL="https://diwashrai.github.io/digital-garden/",fetchData=Promise.all([fetch("https://diwashrai.github.io/digital-garden/indices/linkIndex.4d5fc0a27a94ab90f0a232d45d270ca4.min.json").then(e=>e.json()).then(e=>({index:e.index,links:e.links})),fetch("https://diwashrai.github.io/digital-garden/indices/contentIndex.533b2b9e8e278aafc017a150f2a6dd2d.min.json").then(e=>e.json())]).then(([{index:e,links:t},n])=>({index:e,links:t,content:n})),render=()=>{const e=new URL(BASE_URL),t=e.pathname,n=window.location.pathname,s=t==n;addCopyButtons(),addTitleToCodeBlocks(),addCollapsibleCallouts(),initPopover("https://diwashrai.github.io/digital-garden",!0);const o=document.getElementById("footer");if(o){const e=document.getElementById("graph-container");if(!e)return requestAnimationFrame(render);e.textContent="";const t=s&&!0;drawGraph("https://diwashrai.github.io/digital-garden",t,[{"/moc":"#4388cc"}],t?{centerForce:1,depth:-1,enableDrag:!0,enableLegend:!1,enableZoom:!0,fontSize:.5,linkDistance:1,opacityScale:3,repelForce:1,scale:1}:{centerForce:1,depth:1,enableDrag:!0,enableLegend:!1,enableZoom:!0,fontSize:.6,linkDistance:1,opacityScale:3,repelForce:2,scale:1.2})}var i=document.getElementsByClassName("mermaid");i.length>0&&import("https://unpkg.com/mermaid@9/dist/mermaid.esm.min.mjs").then(e=>{e.default.init()});function a(n){const e=n.target,t=e.className.split(" "),s=t.includes("broken"),o=t.includes("internal-link");plausible("Link Click",{props:{href:e.href,broken:s,internal:o,graph:!1}})}const r=document.querySelectorAll("a");for(link of r)link.className.includes("root-title")&&link.addEventListener("click",a,{once:!0})},init=(e=document)=>{addCopyButtons(),addTitleToCodeBlocks(),renderMathInElement(e.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"$",right:"$",display:!1}],macros:{'’':"'"},throwOnError:!1})}</script><script type=module>
+    import { attachSPARouting } from "https:\/\/diwashrai.github.io\/digital-garden\/js\/router.d6fe6bd821db9ea97f9aeefae814d8e7.min.js"
+    attachSPARouting(init, render)
+  </script><script defer data-domain=diwashrai.github.io/digital-garden src=https://plausible.io/js/script.js></script>
+<script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script></head><body><div id=search-container><div id=search-space><input autocomplete=off id=search-bar name=search type=text aria-label=Search placeholder="Search for something..."><div id=results-container></div></div></div><script src=https://cdn.jsdelivr.net/npm/flexsearch@0.7.21/dist/flexsearch.bundle.js integrity="sha256-i3A0NZGkhsKjVMzFxv3ksk0DZh3aXqu0l49Bbh0MdjE=" crossorigin=anonymous defer></script>
+<script defer src=https://diwashrai.github.io/digital-garden/js/full-text-search.e6e2e0c213187ca0c703d6e2c7a77fcd.min.js></script><div class=singlePage><header><h1 id=page-title><a class=root-title href=https://diwashrai.github.io/digital-garden/>Diwash's Digital Garden 🌱</a></h1><div class=spacer></div><div id=search-icon><p>Search</p><svg tabindex="0" aria-labelledby="title desc" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.9 19.7"><title id="title">Search Icon</title><desc id="desc">Icon to open search</desc><g class="search-path" fill="none"><path stroke-linecap="square" d="M18.5 18.3l-5.4-5.4"/><circle cx="8" cy="8" r="7"/></g></svg></div><div class=darkmode><input class=toggle id=darkmode-toggle type=checkbox tabindex=-1>
+<label id=toggle-label-light for=darkmode-toggle tabindex=-1><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="dayIcon" viewBox="0 0 35 35" style="enable-background:new 0 0 35 35"><title>Light Mode</title><path d="M6 17.5C6 16.672 5.328 16 4.5 16h-3C.672 16 0 16.672.0 17.5S.672 19 1.5 19h3C5.328 19 6 18.328 6 17.5zM7.5 26c-.414.0-.789.168-1.061.439l-2 2C4.168 28.711 4 29.086 4 29.5 4 30.328 4.671 31 5.5 31c.414.0.789-.168 1.06-.44l2-2C8.832 28.289 9 27.914 9 27.5 9 26.672 8.329 26 7.5 26zm10-20C18.329 6 19 5.328 19 4.5v-3C19 .672 18.329.0 17.5.0S16 .672 16 1.5v3C16 5.328 16.671 6 17.5 6zm10 3c.414.0.789-.168 1.06-.439l2-2C30.832 6.289 31 5.914 31 5.5 31 4.672 30.329 4 29.5 4c-.414.0-.789.168-1.061.44l-2 2C26.168 6.711 26 7.086 26 7.5 26 8.328 26.671 9 27.5 9zM6.439 8.561C6.711 8.832 7.086 9 7.5 9 8.328 9 9 8.328 9 7.5c0-.414-.168-.789-.439-1.061l-2-2C6.289 4.168 5.914 4 5.5 4 4.672 4 4 4.672 4 5.5c0 .414.168.789.439 1.06l2 2.001zM33.5 16h-3c-.828.0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5h3c.828.0 1.5-.672 1.5-1.5S34.328 16 33.5 16zM28.561 26.439C28.289 26.168 27.914 26 27.5 26c-.828.0-1.5.672-1.5 1.5.0.414.168.789.439 1.06l2 2C28.711 30.832 29.086 31 29.5 31c.828.0 1.5-.672 1.5-1.5.0-.414-.168-.789-.439-1.061l-2-2zM17.5 29c-.829.0-1.5.672-1.5 1.5v3c0 .828.671 1.5 1.5 1.5s1.5-.672 1.5-1.5v-3C19 29.672 18.329 29 17.5 29zm0-22C11.71 7 7 11.71 7 17.5S11.71 28 17.5 28 28 23.29 28 17.5 23.29 7 17.5 7zm0 18c-4.136.0-7.5-3.364-7.5-7.5s3.364-7.5 7.5-7.5 7.5 3.364 7.5 7.5S21.636 25 17.5 25z"/></svg></label><label id=toggle-label-dark for=darkmode-toggle tabindex=-1><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="nightIcon" viewBox="0 0 100 100" style="enable-background='new 0 0 100 100'"><title>Dark Mode</title><path d="M96.76 66.458c-.853-.852-2.15-1.064-3.23-.534-6.063 2.991-12.858 4.571-19.655 4.571C62.022 70.495 50.88 65.88 42.5 57.5 29.043 44.043 25.658 23.536 34.076 6.47c.532-1.08.318-2.379-.534-3.23-.851-.852-2.15-1.064-3.23-.534-4.918 2.427-9.375 5.619-13.246 9.491-9.447 9.447-14.65 22.008-14.65 35.369.0 13.36 5.203 25.921 14.65 35.368s22.008 14.65 35.368 14.65c13.361.0 25.921-5.203 35.369-14.65 3.872-3.871 7.064-8.328 9.491-13.246C97.826 68.608 97.611 67.309 96.76 66.458z"/></svg></label></div></header><article><h1>Branchless Programming in C++</h1><p class=meta>Last updated
+Feb 7, 2023
+<a href=https://github.com/jackyzha0/quartz/tree/hugo/content/Sources/Branchless%20Programming%20in%20C++.md rel=noopener>Edit Source</a></p><ul class=tags><li><a href=https://diwashrai.github.io/digital-garden/tags/source/>Source</a></li><li><a href=https://diwashrai.github.io/digital-garden/tags/infomedia/>Infomedia</a></li><li><a href=https://diwashrai.github.io/digital-garden/tags/cppcon/>Cppcon</a></li></ul><aside class=mainTOC><details><summary>Table of Contents</summary><nav id=TableOfContents><ol><li><a href=#potential-benefits>Potential benefits</a></li><li><a href=#philosophy-for-performance>Philosophy for performance</a><ol><li><a href=#cpu-compute-resources>CPU compute resources</a></li></ol></li><li><a href=#pipelining>Pipelining</a></li><li><a href=#branches>Branches</a></li><li><a href=#experiments>Experiments</a><ol><li><a href=#1a-always-true---same-branch-taken>1.a. always true -> same branch taken</a></li><li><a href=#1b-random---5050-if-branch-vs-else-branch>1.b. random -> 50/50 if branch vs else branch</a></li><li><a href=#using-perf-to-detect-branch-mispredictions>Using perf to detect branch mispredictions.</a></li><li><a href=#1c-alternating-if-branch-and-else-branch---predictable-branching>1.c. alternating if branch and else branch -> predictable branching</a></li><li><a href=#2a-predictable-result-unpredictable-branch>2.a. Predictable result, unpredictable branch</a></li><li><a href=#2b-bitwise-optimisation>2.b. bitwise optimisation</a></li><li><a href=#3a-branched-unpredictable>3.a. Branched unpredictable</a></li><li><a href=#3b-branchless-unpredictable>3.b. branchless unpredictable</a></li></ol></li><li><a href=#closing-thoughts>Closing thoughts</a></li></ol></nav></details></aside><p>Link:
+<a href="https://www.youtube.com/watch?v=g-WPhYREFjk" rel=noopener>Branchless programming in C++ CppCon video</a><br>Author:
+<a href=/digital-garden/Authors/Fedor-Pikus/ rel=noopener class=internal-link data-src=/digital-garden/Authors/Fedor-Pikus/>Fedor Pikus</a><br>Topics:
+<a href=/digital-garden/Topics/Software-Engineering/ rel=noopener class=internal-link data-src=/digital-garden/Topics/Software-Engineering/>Software Engineering</a></p><hr><a href=#potential-benefits><h2 id=potential-benefits><span class=hanchor arialabel=Anchor># </span>Potential benefits</h2></a><p><strong>Common code example 1:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>f</span><span class=p>(</span><span class=kt>bool</span> <span class=n>b</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>x</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&amp;</span> <span class=n>s</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=k>if</span> <span class=p>(</span><span class=n>b</span><span class=p>)</span> <span class=n>s</span><span class=o>+=</span> <span class=n>x</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>130M calls/sec -> 400M calls/sec optimised<br>Optimised version:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>f</span><span class=p>(</span><span class=kt>bool</span> <span class=n>b</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>x</span><span class=p>,</span> <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&amp;</span> <span class=n>s</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>s</span><span class=o>+=</span> <span class=n>b</span> <span class=o>*</span> <span class=n>x</span><span class=p>;</span> <span class=c1>// use boolean as int to multiply &#39;x&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Common code example 2:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>if</span> <span class=p>(</span><span class=n>x</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>||</span> <span class=n>y</span><span class=p>[</span><span class=n>i</span><span class=p>])</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// Do something
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>150M evaluations/sec -> 570M evaluations/sec
+(Optimisation show in <a href=#2b-bitwise-optimisation>2.b. bitwise optimisation</a>)</p><a href=#philosophy-for-performance><h2 id=philosophy-for-performance><span class=hanchor arialabel=Anchor># </span>Philosophy for performance</h2></a><p>In order of priority:</p><ul><li>Get desired result with <mark>least work</mark><ul><li>Use an <em>optimal</em> algorithm</li></ul></li><li>Do not do any <mark>unnecessary work</mark><ul><li>Efficiently use language</li></ul></li><li>Use <mark>all available resources</mark>, <mark>at the same time</mark>, <mark>all the time</mark>.<ul><li>Efficient hardware use.</li></ul></li></ul><a href=#cpu-compute-resources><h3 id=cpu-compute-resources><span class=hanchor arialabel=Anchor># </span>CPU compute resources</h3></a><p><strong>Inefficient use of CPU:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>v1</span><span class=p>[</span><span class=n>N</span><span class=p>],</span> <span class=n>v2</span><span class=p>[</span><span class=n>N</span><span class=p>];</span>
+</span></span><span class=line><span class=cl><span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>a</span> <span class=o>+=</span> <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>*</span> <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Why is it inefficient use of CPU?<br>Because it does not actually load the CPU very much at all as we are only doing one multiplication per iteration. In fact, more calculations can be thrown in for free.</p><p>The following code will run at the same speed on modern CPUs.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span><span class=lnt>9
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>v1</span><span class=p>[</span><span class=n>N</span><span class=p>],</span> <span class=n>v2</span><span class=p>[</span><span class=n>N</span><span class=p>];</span>
+</span></span><span class=line><span class=cl><span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>a1</span> <span class=o>+=</span> <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>*</span> <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>    <span class=n>a2</span> <span class=o>+=</span> <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+</span> <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl>    <span class=c1>// in fact you can insert even more operations for &#39;free&#39;
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Sounds great! Not quite. You can almost never do that due to <mark>data dependencies</mark>. In order to do the next computation, you need the result from the first. Things get even worse if there are <mark>code dependencies.</mark> There may be branches and conditions which means that the CPU now must wait until it knows which <mark>instructions</mark> to execute as well.</p><p>Having so much compute power would be useless however if we didn&rsquo;t have some workarounds!</p><a href=#pipelining><h2 id=pipelining><span class=hanchor arialabel=Anchor># </span>Pipelining</h2></a><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>a</span> <span class=o>+=</span> <span class=p>(</span><span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>+</span> <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=o>*</span> <span class=p>(</span><span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>-</span> <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]);</span>
+</span></span></code></pre></td></tr></table></div></div><p>In this example you can do the addition and subtraction in the first cycle, then do the multiplication in the second cycle, whilst also doing the addition and subtraction for the next iteration. This creates two <em>streams</em> of instructions that are interleaved that have no data dependency between them at a given cpu cycle.</p><p>This results in multiple instruction streams that have</p><ul><li>Dependencies within each stream</li><li>No data dependencies between streams</li></ul><p>This is great and increases cpu utilisation. However, the next barrier is&mldr; <strong>conditional code.</strong></p><a href=#branches><h2 id=branches><span class=hanchor arialabel=Anchor># </span>Branches</h2></a><p>Pipelining requires a continuous stream of instructions. Conditions/Branches mean that the CPU is unsure of the next instruction to place into the pipeline. So what can we do?</p><p><strong>Branch prediction</strong>. The CPU guesses which branch to take and continues pipelining. The <mark>performance is now based on accuracy of predictions</mark>. However, the branch can be mispredicted and recovering from a <mark>branch misprediction</mark> is very costly.</p><p>But how costly is this branch misprediction?</p><a href=#experiments><h2 id=experiments><span class=hanchor arialabel=Anchor># </span>Experiments</h2></a><a href=#1a-always-true---same-branch-taken><h3 id=1a-always-true---same-branch-taken><span class=hanchor arialabel=Anchor># </span>1.a. always true -> same branch taken</h3></a><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>always_true</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>       <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&gt;=</span> <span class=mi>0</span><span class=p>;</span> <span class=c1>// always true
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a1</span> <span class=o>+=</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a2</span> <span class=o>*=</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>always_true</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Benchmark result:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.26, 0.35, 0.45
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark                    Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>always_true/4194304    <span class=m>1741613</span> ns      <span class=m>1734898</span> ns          <span class=m>430</span> <span class=nv>items_per_second</span><span class=o>=</span>2.41761G/s
+</span></span></code></pre></td></tr></table></div></div><a href=#1b-random---5050-if-branch-vs-else-branch><h3 id=1b-random---5050-if-branch-vs-else-branch><span class=hanchor arialabel=Anchor># </span>1.b. random -> 50/50 if branch vs else branch</h3></a><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>random</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>       <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&amp;</span> <span class=mh>0x1</span><span class=p>;</span> <span class=c1>// randomly true/false
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a1</span> <span class=o>+=</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a2</span> <span class=o>*=</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>random</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Benchmark result:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.26, 0.36, 0.44
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>-------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark               Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>-------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>random/4194304   <span class=m>12131503</span> ns     <span class=m>12091002</span> ns           <span class=m>58</span> <span class=nv>items_per_second</span><span class=o>=</span>346.895M/s
+</span></span></code></pre></td></tr></table></div></div><p>As you can see, the mispredicted benchmark is significantly slower. By about 7.7 times. Branch mispredictions are extremely costly.</p><p>But how do we detect when branch misprediction is a problem? By using a cpu profiling tool such as <strong><mark>perf</mark></strong>.</p><a href=#using-perf-to-detect-branch-mispredictions><h3 id=using-perf-to-detect-branch-mispredictions><span class=hanchor arialabel=Anchor># </span>Using perf to detect branch mispredictions.</h3></a><p>The command to run is <code>perf stat &lt;program></code><br>The result for the 1a the &lsquo;always true&rsquo; program is:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>task-clock:u                     <span class=c1>#    1.000 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   58.862 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.217 GHz                      (83.30%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    1.63% frontend cycles idle     (83.35%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.17% backend cycles idle      (83.35%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    3.68  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.00  stalled cycles per insn  (83.34%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    4.399 G/sec                    (83.35%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#    0.00% of all branches          (83.31%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>0% (or usually close to that) branch-misses. Compare that to 1b.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>task-clock:u                     <span class=c1>#    1.000 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   52.165 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.258 GHz                      (83.30%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    0.87% frontend cycles idle     (83.31%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.00% backend cycles idle      (83.31%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    0.88  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.01  stalled cycles per insn  (83.33%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    1.078 G/sec                    (83.40%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#   12.16% of all branches          (83.35%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>12% branch-misprediction. With the context of the second perf result, you can see that <mark>instructions per cycle</mark> is also massively down from 3.68 -> 0.88.</p><a href=#1c-alternating-if-branch-and-else-branch---predictable-branching><h3 id=1c-alternating-if-branch-and-else-branch---predictable-branching><span class=hanchor arialabel=Anchor># </span>1.c. alternating if branch and else branch -> predictable branching</h3></a><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>alternating</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=k>if</span> <span class=p>(</span><span class=n>i</span> <span class=o>==</span> <span class=mi>0</span><span class=p>)</span> <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&gt;=</span><span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>else</span> <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=o>!</span><span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=o>-</span><span class=mi>1</span><span class=p>];</span> <span class=c1>// alternate true and false
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a1</span> <span class=o>+=</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a2</span> <span class=o>*=</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>alternating</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Benchmark result:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.89, 0.46, 0.42
+</span></span><span class=line><span class=cl>------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark                    Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>alternating/4194304    <span class=m>2529638</span> ns      <span class=m>2523583</span> ns          <span class=m>280</span> <span class=nv>items_per_second</span><span class=o>=</span>1.66204G/s
+</span></span></code></pre></td></tr></table></div></div><p><strong>Perf result:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>task-clock:u                     <span class=c1>#    0.999 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   57.934 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.229 GHz                      (83.30%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    0.74% frontend cycles idle     (83.32%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.22% backend cycles idle      (83.31%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    2.39  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.00  stalled cycles per insn  (83.34%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    3.029 G/sec                    (83.39%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#    0.00% of all branches          (83.34%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>With an alternating pattern, you can see that it is slower than the &lsquo;alway true&rsquo; program, but faster than the horribly mispredicted one. 440 vs 58 vs 280.</p><p>The branch-misses are also at 0%. The CPU figured out the pattern!</p><a href=#2a-predictable-result-unpredictable-branch><h3 id=2a-predictable-result-unpredictable-branch><span class=hanchor arialabel=Anchor># </span>2.a. Predictable result, unpredictable branch</h3></a><p>This is a case where you have an || condition.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>random_predictable</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&amp;</span> <span class=mh>0x1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=n>c2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=o>!</span><span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b2</span> <span class=o>=</span> <span class=n>c2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>||</span> <span class=n>b2</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a1</span> <span class=o>+=</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a2</span> <span class=o>*=</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>random_predictable</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p>the &lsquo;if&rsquo; condtion is always true as b1 is true when b2 isn&rsquo;t and viceversa. Although the result is predictable, the branch taken is not. This is because the branch is either through b1 or b2. Here are the benchmark results</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Running ./02-random_predictable
+</span></span><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.42, 0.54, 0.54
+</span></span><span class=line><span class=cl>-------------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark                           Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>-------------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>random_predictable/4194304   <span class=m>12137243</span> ns     <span class=m>12055659</span> ns           <span class=m>58</span> <span class=nv>items_per_second</span><span class=o>=</span>347.912M/s
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>task-clock:u                     <span class=c1>#    1.000 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   65.941 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.206 GHz                      (83.30%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    0.85% frontend cycles idle     (83.30%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.45% backend cycles idle      (83.30%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    1.01  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.01  stalled cycles per insn  (83.36%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    1.195 G/sec                    (83.39%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#   10.82% of all branches          (83.35%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>As you can see the iterations value is down to 58 and branch-misses is up to 10.82%. Even though the result is the same every time.</p><p>How can we optimise this?</p><a href=#2b-bitwise-optimisation><h3 id=2b-bitwise-optimisation><span class=hanchor arialabel=Anchor># </span>2.b. bitwise optimisation</h3></a><p>Here I will use addition. You can also use logical &lsquo;or&rsquo;.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span><span class=lnt>39
+</span><span class=lnt>40
+</span><span class=lnt>41
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>bitwise</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&amp;</span> <span class=mh>0x1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=n>c2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=o>!</span><span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b2</span> <span class=o>=</span> <span class=n>c2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=kt>bool</span><span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=o>+</span> <span class=kt>bool</span><span class=p>(</span><span class=n>b2</span><span class=p>[</span><span class=n>i</span><span class=p>]))</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a1</span> <span class=o>+=</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a2</span> <span class=o>*=</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>bitwise</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p>The results:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Running ./02-bitwise
+</span></span><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.69, 0.50, 0.51
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>--------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark                Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>--------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>bitwise/4194304    <span class=m>2113774</span> ns      <span class=m>2097247</span> ns          <span class=m>337</span> <span class=nv>items_per_second</span><span class=o>=</span>1.99991G/s
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>task-clock:u                     <span class=c1>#    1.000 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   73.555 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.164 GHz                      (83.33%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    1.04% frontend cycles idle     (83.33%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.36% backend cycles idle      (83.33%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    4.60  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.00  stalled cycles per insn  (83.33%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    3.419 G/sec                    (83.33%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#    0.00% of all branches          (83.35%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>Here you can see branch-misses are down to 0% again and iterations are up from 58 to 337.</p><p><strong>Bear in mind,</strong> the optimisation is that instead of evaluating both conditions separately, you calculate both and then check both at the same time. This means you are doing more instructions. <mark>That is the tradeoff</mark>. This can be important if you, for example, battery life is important to you.</p><p>Additionally, if the result was not predictable, this would also instead be a performance hit.</p><a href=#3a-branched-unpredictable><h3 id=3a-branched-unpredictable><span class=hanchor arialabel=Anchor># </span>3.a. Branched unpredictable</h3></a><p>Experiment 3 will consist of taking a loop with 1 branch and showing how we can eliminate the branch completely. The first case is then the branched example.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span><span class=lnt>38
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>branched_unpredictable</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>       <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&amp;</span> <span class=mh>0x1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=k>if</span> <span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a1</span> <span class=o>+=</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>-</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span> <span class=k>else</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>                <span class=n>a2</span> <span class=o>*=</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>*</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>];</span>
+</span></span><span class=line><span class=cl>            <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>branched_unpredictable</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p><strong>Result:</strong></p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Running ./03-branched-unpredictable
+</span></span><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.76, 0.75, 0.63
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>-----------------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark                               Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>-----------------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>branched_unpredictable/4194304   <span class=m>13162172</span> ns     <span class=m>13070350</span> ns           <span class=m>54</span> <span class=nv>items_per_second</span><span class=o>=</span>320.902M/s
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>task-clock:u                     <span class=c1>#    0.999 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   51.062 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.230 GHz                      (83.31%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    0.87% frontend cycles idle     (83.32%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.20% backend cycles idle      (83.20%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    0.88  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.01  stalled cycles per insn  (83.41%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    1.029 G/sec                    (83.40%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#   11.79% of all branches          (83.36%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>54 iterations, 11.79% branch-misses.</p><a href=#3b-branchless-unpredictable><h3 id=3b-branchless-unpredictable><span class=hanchor arialabel=Anchor># </span>3.b. branchless unpredictable</h3></a><p>This example now shows how we can eliminate the branch completely.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span><span class=lnt>26
+</span><span class=lnt>27
+</span><span class=lnt>28
+</span><span class=lnt>29
+</span><span class=lnt>30
+</span><span class=lnt>31
+</span><span class=lnt>32
+</span><span class=lnt>33
+</span><span class=lnt>34
+</span><span class=lnt>35
+</span><span class=lnt>36
+</span><span class=lnt>37
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&#34;benchmark/benchmark.h&#34;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;stdlib.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp>#include</span> <span class=cpf>&lt;string.h&gt;</span><span class=cp>
+</span></span></span><span class=line><span class=cl><span class=cp></span>
+</span></span><span class=line><span class=cl><span class=k>static</span> <span class=kt>void</span> <span class=nf>branchless_unpredictable</span><span class=p>(</span><span class=n>benchmark</span><span class=o>::</span><span class=n>State</span><span class=o>&amp;</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>srand</span><span class=p>(</span><span class=mi>1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=kt>unsigned</span> <span class=kt>int</span> <span class=n>N</span> <span class=o>=</span> <span class=n>state</span><span class=p>.</span><span class=n>range</span><span class=p>(</span><span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>unsigned</span> <span class=kt>long</span><span class=o>&gt;</span> <span class=n>v1</span><span class=p>(</span><span class=n>N</span><span class=p>),</span> <span class=n>v2</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>vector</span><span class=o>&lt;</span><span class=kt>int</span><span class=o>&gt;</span> <span class=n>c1</span><span class=p>(</span><span class=n>N</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>       <span class=n>v1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>v2</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>       <span class=n>c1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>=</span> <span class=n>rand</span><span class=p>()</span> <span class=o>&amp;</span> <span class=mh>0x1</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>v1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>unsigned</span> <span class=kt>long</span><span class=o>*</span> <span class=n>p2</span> <span class=o>=</span> <span class=n>v2</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span><span class=o>*</span> <span class=n>b1</span> <span class=o>=</span> <span class=n>c1</span><span class=p>.</span><span class=n>data</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=k>for</span> <span class=p>(</span><span class=k>auto</span> <span class=nl>_</span> <span class=p>:</span> <span class=n>state</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>a1</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span> <span class=n>a2</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>        <span class=k>for</span> <span class=p>(</span><span class=n>size_t</span> <span class=n>i</span> <span class=o>=</span> <span class=mi>0</span><span class=p>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>N</span><span class=p>;</span> <span class=o>++</span><span class=n>i</span><span class=p>)</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>            <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>s1</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=mi>0</span><span class=p>,</span> <span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>-</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>]};</span>
+</span></span><span class=line><span class=cl>            <span class=kt>unsigned</span> <span class=kt>long</span> <span class=n>s2</span><span class=p>[</span><span class=mi>2</span><span class=p>]</span> <span class=o>=</span> <span class=p>{</span><span class=n>p1</span><span class=p>[</span><span class=n>i</span><span class=p>]</span> <span class=o>*</span> <span class=n>p2</span><span class=p>[</span><span class=n>i</span><span class=p>],</span> <span class=mi>0</span><span class=p>};</span>
+</span></span><span class=line><span class=cl>            <span class=n>a1</span> <span class=o>+=</span> <span class=n>s1</span><span class=p>[</span><span class=kt>bool</span><span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])];</span>
+</span></span><span class=line><span class=cl>            <span class=n>a2</span> <span class=o>+=</span> <span class=n>s2</span><span class=p>[</span><span class=kt>bool</span><span class=p>(</span><span class=n>b1</span><span class=p>[</span><span class=n>i</span><span class=p>])];</span>
+</span></span><span class=line><span class=cl>        <span class=p>}</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a1</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>DoNotOptimize</span><span class=p>(</span><span class=n>a2</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>        <span class=n>benchmark</span><span class=o>::</span><span class=n>ClobberMemory</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>state</span><span class=p>.</span><span class=n>SetItemsProcessed</span><span class=p>(</span><span class=n>N</span><span class=o>*</span><span class=n>state</span><span class=p>.</span><span class=n>iterations</span><span class=p>());</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK</span><span class=p>(</span><span class=n>branchless_unpredictable</span><span class=p>)</span><span class=o>-&gt;</span><span class=n>Arg</span><span class=p>(</span><span class=mi>1</span><span class=o>&lt;&lt;</span><span class=mi>22</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>BENCHMARK_MAIN</span><span class=p>();</span>
+</span></span></code></pre></td></tr></table></div></div><p>What we are doing is essentially calculating both branches and storing them in an array. Then using the bool &lsquo;b1&rsquo; as an integer to add both branch results to &lsquo;a1&rsquo; and &lsquo;a2&rsquo;. The key being that s1 and s2 store a &lsquo;0&rsquo; value in position 0 and 1 respectively. So how effective is this?</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span><span class=lnt>19
+</span><span class=lnt>20
+</span><span class=lnt>21
+</span><span class=lnt>22
+</span><span class=lnt>23
+</span><span class=lnt>24
+</span><span class=lnt>25
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-shell data-lang=shell><span class=line><span class=cl>Running ./03-branchless-unpredictable.cpp
+</span></span><span class=line><span class=cl>Run on <span class=o>(</span><span class=m>12</span> X 4467.28 MHz CPU s<span class=o>)</span>
+</span></span><span class=line><span class=cl>CPU Caches:
+</span></span><span class=line><span class=cl>  L1 Data <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L1 Instruction <span class=m>32</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L2 Unified <span class=m>512</span> KiB <span class=o>(</span>x6<span class=o>)</span>
+</span></span><span class=line><span class=cl>  L3 Unified <span class=m>32768</span> KiB <span class=o>(</span>x1<span class=o>)</span>
+</span></span><span class=line><span class=cl>Load Average: 0.30, 0.40, 0.51
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>-------------------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>Benchmark                                 Time             CPU   Iterations UserCounters...
+</span></span><span class=line><span class=cl>-------------------------------------------------------------------------------------------
+</span></span><span class=line><span class=cl>branchless_unpredictable/4194304    <span class=m>4246080</span> ns      <span class=m>4207040</span> ns          <span class=m>166</span> <span class=nv>items_per_second</span><span class=o>=</span>996.973M/s
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl>task-clock:u                     <span class=c1>#    0.998 CPUs utilized</span>
+</span></span><span class=line><span class=cl>context-switches:u               <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>cpu-migrations:u                 <span class=c1>#    0.000 /sec</span>
+</span></span><span class=line><span class=cl>page-faults:u                    <span class=c1>#   48.458 K/sec</span>
+</span></span><span class=line><span class=cl>cycles:u                         <span class=c1>#    4.253 GHz                      (83.31%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-frontend:u        <span class=c1>#    1.16% frontend cycles idle     (83.34%)</span>
+</span></span><span class=line><span class=cl>stalled-cycles-backend:u         <span class=c1>#    0.17% backend cycles idle      (83.37%)</span>
+</span></span><span class=line><span class=cl>instructions:u                   <span class=c1>#    3.69  insn per cycle</span>
+</span></span><span class=line><span class=cl>                          <span class=c1>#    0.00  stalled cycles per insn  (83.36%)</span>
+</span></span><span class=line><span class=cl>branches:u                       <span class=c1>#    1.301 G/sec                    (83.29%)</span>
+</span></span><span class=line><span class=cl>branch-misses:u                  <span class=c1>#    0.00% of all branches          (83.32%)</span>
+</span></span></code></pre></td></tr></table></div></div><p>The iterations have increased from 54 to 166 and branch-misses are now 0% again.</p><p>Note that the iterations has not increased as drastically as we are actually doing a lot more work, but there is still a significant performance boost.</p><p>This optimisation is effective under two circumstances:</p><ol><li>Extra computations are small</li><li>Branch is poorly predicted</li></ol><a href=#closing-thoughts><h2 id=closing-thoughts><span class=hanchor arialabel=Anchor># </span>Closing thoughts</h2></a><ul><li>Predicted branches are cheap</li><li>Mispredictions are <strong>very</strong> expensive</li><li><strong>ALWAYS</strong> use a profiler to detect optimisation locations.</li><li>Don&rsquo;t fight the compiler as it can often do the optimisations for you.</li></ul></article><hr><div class=page-end id=footer><div class=backlinks-container><h3>Backlinks</h3><ul class=backlinks><li>No backlinks found</li></ul></div><div><script async src=https://cdn.jsdelivr.net/npm/d3@6.7.0/dist/d3.min.js integrity="sha256-+7jaYCp29O1JusNWHaYtgUn6EhuP0VaFuswhNV06MyI=" crossorigin=anonymous></script><h3>Interactive Graph</h3><div id=graph-container></div><style>:root{--g-node:var(--secondary);--g-node-active:var(--primary);--g-node-inactive:var(--visited);--g-link:var(--outlinegray);--g-link-active:#5a7282}</style><script src=https://diwashrai.github.io/digital-garden/js/graph.6579af7b10c818dbd2ca038702db0224.js></script></div></div><div id=contact_buttons><footer><p>Made by Diwash Rai using <a href=https://github.com/jackyzha0/quartz>Quartz</a>, © 2023</p><ul><li><a href=https://diwashrai.github.io/digital-garden/>Home</a></li><li><a href=https://github.com/DiwashRai>GitHub</a></li></ul></footer></div></div></body></html>
