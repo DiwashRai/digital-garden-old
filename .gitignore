@@ -1,6 +1,0 @@
-.bundle
-vendor/
-.jekyll-cache
-_site/
-_includes/notes_graph.json
-_notes/.obsidian/themes
