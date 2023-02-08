@@ -10,10 +10,13 @@ Personal notes to get the project setup for myself
 
 ## Fedora
 ```
-sudo dnf install ruby ruby-devel
-bundle config set --local path 'vendor/bundle'
-bundle install
-# Copy libsass.so to correct location
-bundle exec jekyll serve
+sudo dnf install go
+go install github.com/jackyzha0/hugo-obsidian@latest
+go mod init github.com/jackyzha0/hugo-obsidian
+```
+`in .zshrc file add following lines
+```
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 ```
 
