@@ -1,6 +1,6 @@
 # Repo for my personal digital garden
 
-Created using [digital-garden-jekyll-template](https://github.com/maximevaillancourt/digital-garden-jekyll-template)
+Created using [Quartz](https://quartz.jzhao.xyz/)
 
 Uses GitHub Actions to build and deploy the site to https://diwashrai.github.io/digital-garden/
 
@@ -8,13 +8,13 @@ Uses GitHub Actions to build and deploy the site to https://diwashrai.github.io/
 
 Personal notes to get the project setup for myself
 
-## Fedora
+## Fedora/Mac
 ```
-sudo dnf install go
+sudo dnf install go # fedora
+sudo brew install go # mac
 go install github.com/jackyzha0/hugo-obsidian@latest
-go mod init github.com/jackyzha0/hugo-obsidian
 ```
-`in .zshrc file add following lines
+Append the following lines in the .zshrc file
 ```
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
