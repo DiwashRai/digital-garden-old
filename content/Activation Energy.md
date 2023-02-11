@@ -5,6 +5,7 @@ tags:
 - technique
 - mental-model
 ---
+## Activation Energy
 Reference:  https://www.makeuseof.com/tag/7-mental-models-get-work-done/ | [Atomic Habits](Sources/Atomic%20Habits.md)    
 Topics: [Productivity](Topics/Productivity.md)  
 

@@ -1,7 +1,7 @@
 ---
 title: "Obsidian System"
 ---
-
+## My Obsidian System
 -   **Core types:**
     - atom: the base note type for an individual piece of knowledge derived from a source
     - molecule: bservation/insight drawn from a single or multiple atoms

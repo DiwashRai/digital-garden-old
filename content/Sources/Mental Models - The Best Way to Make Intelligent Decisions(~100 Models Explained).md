@@ -5,7 +5,7 @@ tags:
 - infomedia
 - todo
 ---
-
+## Mental Models - The Best Way to Make Intelligent Decisions(~100 Models Explained)
 Author: [Rhiannon Beaubien](Authors/Rhiannon%20Beaubien.md)  
 Link: [fs blog](https://fs.blog/mental-models/)  
 Topics: [Mental Models](Topics/Mental%20Models.md)    
