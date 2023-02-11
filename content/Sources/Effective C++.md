@@ -4,7 +4,7 @@ tags:
 - source
 - textbook
 ---
-## Effective C++
+
 Author: [Scott Meyers](Authors/Scott%20Meyers.md)    
 Topics: [Software Engineering](Topics/Software%20Engineering.md)  
 

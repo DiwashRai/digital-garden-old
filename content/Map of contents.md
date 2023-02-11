@@ -1,9 +1,7 @@
 ---
 title: "Map of contents"
 ---
-## Map of Contents
-
-### Topics
+## Topics
 - [Software Engineering](Topics/Software%20Engineering.md)
 - [Productivity](Topics/Productivity.md)
 - [Mental Models](Topics/Mental%20Models.md)

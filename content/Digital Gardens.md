@@ -3,7 +3,6 @@ title: "Digital Gardens"
 tags:
 - atom
 ---
-## Digital Gardens
 References:  [Maggie Appleton - Brief History & Ethos of Digital Gardens](https://maggieappleton.com/garden-history)  
 [Tom Critchlow - Building digital garden](https://tomcritchlow.com/2019/02/17/building-digital-garden/)  
 Topics:  [Productivity](Topics/Productivity.md)  

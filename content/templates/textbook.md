@@ -4,7 +4,6 @@ tags:
 - source
 - textbook
 ---
-## Title
 Author:  
 Topics:  
 

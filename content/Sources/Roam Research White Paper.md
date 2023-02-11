@@ -4,7 +4,6 @@ tags:
 - source
 - academic
 ---
-## Roam Research white paper
 citation:  [White Paper](https://roamresearch.com/#/app/help/page/dZ72V0Ig6)
 Topics:  [Productivity](Topics/Productivity.md)
 

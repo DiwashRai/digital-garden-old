@@ -4,7 +4,7 @@ tags:
 - source
 - infomedia
 ---
-## Leon Hendrix - Journaled for 1000 days. What I learned.
+
 Author: [Leon Hendrix](Authors/Leon%20Hendrix.md)    
 Link: https://www.youtube.com/watch?v=0UhZDFK2Pwc  
 Topics: [Journaling](Topics/Journaling.md)  

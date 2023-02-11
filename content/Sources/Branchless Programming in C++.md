@@ -11,7 +11,6 @@ Author:  [Fedor Pikus](Authors/Fedor%20Pikus.md)
 Topics: [Software Engineering](Topics/Software%20Engineering.md)  
 
 ---
-# Branchless Programming in C++
 
 ## Potential benefits
 
