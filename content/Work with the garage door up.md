@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Work with the garage door up"
 tags:
 - atom
 - infomedia

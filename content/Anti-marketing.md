@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Anti-marketing"
 tags:
 - atom
 - infomedia
