@@ -5,7 +5,7 @@ tags:
 - technique
 - mental-model
 ---
-Reference:  https://www.makeuseof.com/tag/7-mental-models-get-work-done/ | [Atomic Habits](Sources/Atomic%20Habits.md)    
+Reference:  https://www.makeuseof.com/tag/7-mental-models-get-work-done/ | [Atomic Habits](Sources/Atomic%20Habits.md)  
 Topics: [Productivity](Topics/Productivity.md)  
 
 ---

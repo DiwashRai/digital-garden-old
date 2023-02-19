@@ -8,7 +8,7 @@ tags:
 
 Author: [Rhiannon Beaubien](Authors/Rhiannon%20Beaubien.md)  
 Link: [fs blog](https://fs.blog/mental-models/)  
-Topics: [Mental Models](Topics/Mental%20Models.md)    
+Topics: [Mental Models](Topics/Mental%20Models.md)  
 
 ---
 

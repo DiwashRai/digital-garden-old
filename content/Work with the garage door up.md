@@ -4,7 +4,7 @@ tags:
 - atom
 - infomedia
 ---
-References:  [Work with the garage door up - Andy Matuschak](https://notes.andymatuschak.org/About_these_notes?stackedNotes=z21cgR9K3UcQ5a7yPsj2RUim3oM2TzdBByZu&stackedNotes=z2DABWsGLkXcCuUet2scfD1duL1ZHBztwGKp) [Learn in public](https://www.swyx.io/learn-in-public)
+References:  [Work with the garage door up - Andy Matuschak](https://notes.andymatuschak.org/About_these_notes?stackedNotes=z21cgR9K3UcQ5a7yPsj2RUim3oM2TzdBByZu&stackedNotes=z2DABWsGLkXcCuUet2scfD1duL1ZHBztwGKp) [Learn in public](https://www.swyx.io/learn-in-public)  
 Topics:  [Productivity](Topics/Productivity.md)  
 
 ---

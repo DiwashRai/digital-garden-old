@@ -1,6 +1,6 @@
 name: Diwash Rai
 enableToc: false
-openToc: false
+openToc: true
 enableLinkPreview: true
 enableLatex: true
 enableCodeBlockTitle: true
