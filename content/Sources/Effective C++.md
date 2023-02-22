@@ -70,6 +70,16 @@ The rules about when objects initialisation is guaranteed or not is too complica
 
 ## Ch2: Constructors, destructors and assignment operators  
 
+### **Item 5:** Know what functions C++ silently writes and calls
+Compilers will declare the following if you do not do so yourself:
+- Copy constructor
+- Copy assignment operator
+- Destructor
+
+If no constructors are declared at all, compilers will also declare:
+- Default constructor
+
+
 ## Ch3: Resource management  
 
 ## Ch4: Designs and declarations  
