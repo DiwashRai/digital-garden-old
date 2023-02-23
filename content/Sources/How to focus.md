@@ -21,8 +21,7 @@ performance still seems to vary.
 The self may say "I need to focus", however the mind "does not want
 to focus". First we must acknowledge there are different parts of
 'you'. The ability for the self to win involves the frontal lobe which
-is responsible for things such as ==impulse control, delayed gratification
-and directing attention==.
+is responsible for things such as ==impulse control, delayed gratification and directing attention==.
 
 The question is how do we skew the balance in the favour of the self.
 
@@ -41,10 +40,8 @@ dopamine activity.
 
 Crucially the mind knows you hate boredom and will weaponise it against you
 to get to high dopamine activities. ALL of the minds power over you
-revolves around boredom. However, ==you can tolerate boredom more than
-your mind can==.
+revolves around boredom. However, ==you can tolerate boredom more than your mind can==.
 
-[]()### Example mind hack
 Due to the fact that you can tolerate boredom more than your 'mind',
 if you tell yourself that you only have two options: work or sleep;
 your mind will eventually get productive due to the boredom.

@@ -79,6 +79,59 @@ Compilers will declare the following if you do not do so yourself:
 If no constructors are declared at all, compilers will also declare:
 - Default constructor
 
+### **Item 6:** Explicitly disallow the use of compiler-generated functions you do not want
+An example of an unwanted generated function is a copy constructor and copy assignment operator for objects that should not be copied.  
+
+```cpp
+HomeForSale h1;
+HomeForSale h2;
+HomeForSale h3(h1); //should not compile
+h1 = h2;            // should not compile
+```
+
+To achieve this there is a ==well known trick==. Declare the functions private and do not implement them.
+
+```cpp
+class HomeForSale {
+public:
+    ...
+private:
+    HomeForSale(const HomeForSale&);
+    HomeForSale& operator=(ocnst HomeForSale&);
+}
+```
+
+This trick works and generates a link-time error. It is possible to move
+it up to a compile time error by declaring the functions private in a base
+class designed just to prevent copying.
+
+>[!abstract] Summary
+>- Disallow compiler generated function by declaring the function private and not providing an implementation
+
+### **Item 7:** Declare destructors virtual in polymorphic base classes
+Lets say you have a base class `TimeKeeper` and some derivided classes
+that inherit from it:  
+- AtomicClock
+- WaterClock
+- WristWatch
+
+If you try to delete a derived class (e.g. WristWatch) with a base class
+pointer (TimeKeeper), the results are undefined. Most likely, the derived
+class parts of the object won't be deleted. This is a good way to leak
+memory.
+
+Solution is simple: ==give the base class a virtual destructor==.
+
+However, when a class is not meant to be used as a base class, making it
+virtual is usually a bad idea. This is because virtual functions require the
+use of vptr ("virtual table pointers") which increases the size of the type.
+A simple data type that contains two ints, would go from 64bits in size to
+128bits. An increase of 100%. It also makes the object less portable to C.
+
+> [!abstract] Summary
+> - Polymorphic base classes should declare virtual destructors.
+> - Any class with virtual functions should have a virtual destructor.
+> - Classes that aren't base classes should not declare virtual destructors.
 
 ## Ch3: Resource management  
 
