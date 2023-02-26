@@ -128,10 +128,68 @@ use of vptr ("virtual table pointers") which increases the size of the type.
 A simple data type that contains two ints, would go from 64bits in size to
 128bits. An increase of 100%. It also makes the object less portable to C.
 
+If you want to make a class abstract that does not have functions to make
+virtual, you can just give it a pure virtual destructor. This is because a
+abstract classes are meant to be base classes and base classes should
+have a virtual destructor.
+
 > [!abstract] Summary
 > - Polymorphic base classes should declare virtual destructors.
 > - Any class with virtual functions should have a virtual destructor.
 > - Classes that aren't base classes should not declare virtual destructors.
+> - Use a pure virtual destructor to make classes abstract that do not have functions
+
+### **Item 8:** Prevent exceptions from leaving destructors  
+C++ allows destructors to emit exceptions but it is heavily discouraged.
+This is because if an exception is thrown, for example, in a vector
+containing 10 widgets, the rest of the widgets still need to be deleted or
+there will be leak. However, if you then have another exception when
+deleting the other widgets, now you have two simultaneous exceptions
+which results in undefined behaviour.
+
+Example class that closes database connection in destructor:
+```cpp
+class DBConn {
+public:
+    ...
+    ~DBConn()
+    {
+        db.close();
+    }
+private:
+    DBConnection db;
+}
+```
+This will cause issues if the call to close results in an exception. The
+exception will be propagated.
+
+There are two options to fix this:  
+- ==Terminate the program== (e.g. with std::abort()). This is a reasonable solution if the program can no longer run due to the error.
+- ==Swallow the exception==. This is a bad idea as we need to know when something fails.
+
+The actual ideal solution is to create a function that closes the connection
+in the DBConn interface so the client can react to the exception. Then
+the backup call to 'close()' can still be placed in the destructor. This may
+seem like it goes against *item 11*, by placing an extra burden on the client,
+however it is not as it actually **gives** them a chance to react to the
+exception.
+
+> [!abstract] Summary
+> - Destructors should never emit exceptions.
+> - If a classes clients need to react to exceptions during an operation, offer a regular 'non-destrcutor' function that performs the operation.
+
+### **Item 9:** Never call virtual functions during construction or destruction
+
+
+### **Item 10:** Have assignment operators return a reference to `this`
+
+
+### **Item 11:** Handle assignment to self in operator=.
+
+
+### **Item 12:** Copy all parts of an object.
+
+
 
 ## Ch3: Resource management  
 
