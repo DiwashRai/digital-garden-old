@@ -1,36 +1,3 @@
----
-title: "Effective C++"
-tags:
-- source
-- textbook
-enableTOC: true
-openTOC: true
----
-
-Author: [Scott Meyers](Authors/Scott%20Meyers.md)  
-Topics: [Software Engineering](Topics/Software%20Engineering.md)  
-
----
-
-## Ch1: Accustoming yourself to C++  
-
-### **Item 1:** View C++ as a federation of languages  
-C++ is better understood as a group of related sub-languages. These are:
-- C
-- Object-oriented C++
-- Template C++
-- The STL
-
-This is important to keep in mind as different sublanguages have different effective strategies and different conventions.
-
-
-### **Item 2:** Prefer consts, enums, and inlines to \#defines  
-Rule could also be called "Prefer the compiler over the preprocessor".   
-
-```cpp
-// BAD
-#define ASPECT_RATIO 1.653
-
 // GOOD
 const double AspectRation = 1.653;
 const char* const authorName = "Scott Meyers";
@@ -179,13 +146,149 @@ exception.
 > - If a classes clients need to react to exceptions during an operation, offer a regular 'non-destrcutor' function that performs the operation.
 
 ### **Item 9:** Never call virtual functions during construction or destruction
+Don't call virtual functions during construction or destruction as they won't
+do what you expect them to. If they did, it would lead to undefined
+behaviour.
 
+Example: Say you have a base class `Transaction` that is inherited by a 
+class called `BuyTransaction`. If you have a virtual function in Transaction
+that is called during construction, it will call the base class version. Not
+the derived version. This is because the base class is constructed first so
+the derived members will not have been constructed yet.
+
+> [!abstract] Summary
+> - Don't call virtual functions from constructors or destructors.
 
 ### **Item 10:** Have assignment operators return a reference to `this`
+Assignments can be chained together and is right associative.
+```cpp
+int x, y, z;
+x = y = z = 15;
+//equivalent to
+x = (y = (z = 15));
+```
+This is implemented by assignments returning a reference to it's left hand argument. This is the convention that should be followed.
 
+```cpp
+class Widget {
+public:
+    ...
+    Widget& operator=(const Widget& rhs)
+    {
+        ...
+        return *this;
+    }
+    ...
+}
+```
+
+> [!abstract] Summary
+> - Have assignment operators return a reference to `*this`
 
 ### **Item 11:** Handle assignment to self in operator=.
+This looks silly but is allowed:
+```cpp
+Widget w;
+...
+w = w;
+```
+``
+If it's allowed, clients will end up doing it. A less obvious version may look
+like this:
+```cpp
+// potential assignment to selfs
+a[i] = a[j];
+*px = *py;
+```
 
+When writing resource managing classes you can fall into the trap of
+accidentally releasing a resource before you're done with it:
+```cpp
+class Bitmap {...};
+class Widget{
+    ...
+private:
+    Bitmap *pb;
+}
+
+Widget& Widget::operator=(const Widget& rhs)
+{
+    delete pb;
+    pb = new Bitmap(*rhs.pb);
+    return *this;
+}
+```
+
+Here you delete rhs not realising that it is the same as `this`. The
+traditional fix is this:
+```cpp
+
+Widget& Widget::operator=(const Widget& rhs)
+{
+    if (this == &rhs) return *this;
+    
+    delete pb;
+    pb = new Bitmap(*rhs.pb);
+    return *this;
+}
+```
+This is now self-assignment safe but not exception safe. If `new Bitmap`
+causes an exception, it will still cause issues.
+
+Making operator= exception-safe also typically also renders it
+self-assignment-safe. It is common to deal with self-assignment issues by
+ignoring them and isntead focusing on exception safety. A careful ordering
+of statements can make code exception safe. For example:
+
+```cpp
+Widget& Widget::operator=(const Widget& rhs)
+{
+    Bitmap *pOrig = pb;
+    pb = new Bitmap(*rhs.pb);
+    delete pOrig;
+
+    return *this;
+}
+```
+
+> [!tip] Performance Hint
+> The identity test can still be placed at the top for efficiency, however,
+> consider how often self-assignment occurs. The check is not free. It
+> makes the source code and object bigger and introduces a branch.
+>
+
+Alternative to manual ordering is the "copy and swap" technique.
+```cpp
+class Widget {
+    ...
+    void swap(Widget& rhs); // exchanges *this and rhs's data
+    ...
+};
+
+Widget& Widget::operator=(const Widget& rhs)
+{
+    Widget temp(rhs);
+    swap(temp);
+    return *this;
+}
+```
+
+The final variation sacrifices some clarity for allowing the compiler to
+sometimes generate more efficient code.
+```cpp
+Widget& Widget::operator=(Widget rhs) // rhs is a copy of the object
+{
+    swap(rhs);
+
+    return *this;
+}
+```
+
+> [!abstract] Summary
+> - Make sure operator= can handle self-assignment in a well-behaved
+> manner
+> - Make sure any function operating on more than one object behaves
+> well if two or more of the objects are the same.
 
 ### **Item 12:** Copy all parts of an object.
 
