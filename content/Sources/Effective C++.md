@@ -1,3 +1,36 @@
+---
+title: "Effective C++"
+tags:
+- source
+- textbook
+enableTOC: true
+openTOC: true
+---
+
+Author: [Scott Meyers](Authors/Scott%20Meyers.md)  
+Topics: [Software Engineering](Topics/Software%20Engineering.md)  
+
+---
+
+## Ch1: Accustoming yourself to C++  
+
+### **Item 1:** View C++ as a federation of languages  
+C++ is better understood as a group of related sub-languages. These are:
+- C
+- Object-oriented C++
+- Template C++
+- The STL
+
+This is important to keep in mind as different sublanguages have different effective strategies and different conventions.
+
+
+### **Item 2:** Prefer consts, enums, and inlines to \#defines  
+Rule could also be called "Prefer the compiler over the preprocessor".   
+
+```cpp
+// BAD
+#define ASPECT_RATIO 1.653
+
 // GOOD
 const double AspectRation = 1.653;
 const char* const authorName = "Scott Meyers";
