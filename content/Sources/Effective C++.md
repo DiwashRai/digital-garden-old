@@ -284,7 +284,7 @@ Widget& Widget::operator=(const Widget& rhs)
 }
 ```
 
-> [!tip] Performance Hint
+> [!tip] Performance Hint  
 > The identity test can still be placed at the top for efficiency, however,
 > consider how often self-assignment occurs. The check is not free. It
 > makes the source code and object bigger and introduces a branch.
@@ -324,8 +324,74 @@ Widget& Widget::operator=(Widget rhs) // rhs is a copy of the object
 > well if two or more of the objects are the same.
 
 ### **Item 12:** Copy all parts of an object.
+Well-designed objects contain only two functions that copy objects: the
+copy constructor and copy assignment operator. Compilers will generate
+these functions if required and do what you expect them to: copy all the
+data of the object being copied.
 
+However, when you declare your own copy functions, they do not warn you
+when your implementation is wrong. You may forget to copy a newly
+added data member and there will be no warnings.
 
+Another way that you may run into issues is when using inheritance.
+```cpp
+class PriorityCustomer:public Customer {
+public:
+    ...
+    PriorityCustomer(const PriorityCustomer& rhs);
+    PriorityCustomer& operator=(const PriorityCustomer& rhs);
+    ...
+private:
+    int priority;
+};
+
+PriorityCustomer::PriorityCustomer(const PriorityCustomer& rhs)
+: priority(rhs.priority)
+{
+    logCall("PriorityCustomer copy constructor");
+}
+
+PriorityCustomer&
+PriorityCustomer::operator=(const PriorityCustomer& rhs)
+{
+    logCall("PriorityCustomer copy assignment operator");
+    priority = rhs.priority;
+    return *this;
+}
+```
+
+This may look fine and appear to be copying everything, however, 
+crucially, they are not copying the data members it inherits from customer.
+The fix to this would be the following:
+```cpp
+
+PriorityCustomer::PriorityCustomer(const PriorityCustomer& rhs)
+: Customer(rhs)                 // invoke base class copy ctor
+  priority(rhs.priority)
+{
+    logCall("PriorityCustomer copy constructor");
+}
+
+PriorityCustomer&
+PriorityCustomer::operator=(const PriorityCustomer& rhs)
+{
+    logCall("PriorityCustomer copy assignment operator");
+    Customer::operator=(rhs);  // assign base class parts
+    priority = rhs.priority;
+    return *this;
+}
+```
+
+> [!warning] Warning
+> The two copy functions will have similar code but do not call one from
+> the other as it is a non-sensical operation. If you really must, have the
+> two call a third private function such as init().
+
+> [!summary] Summary
+> - Make sure copy functions copy all of an object's data members
+> including the base class parts.
+> - Don't implement one copy function in terms of the other. Put common
+> code in a third function.
 
 ## Ch3: Resource management  
 
