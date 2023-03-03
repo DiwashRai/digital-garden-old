@@ -317,7 +317,7 @@ Widget& Widget::operator=(Widget rhs) // rhs is a copy of the object
 }
 ```
 
-> [!abstract] Summary
+> [!abstract] Summary  
 > - Make sure operator= can handle self-assignment in a well-behaved
 > manner
 > - Make sure any function operating on more than one object behaves
@@ -382,7 +382,7 @@ PriorityCustomer::operator=(const PriorityCustomer& rhs)
 }
 ```
 
-> [!warning] Warning
+> [!warning] Warning  
 > The two copy functions will have similar code but do not call one from
 > the other as it is a non-sensical operation. If you really must, have the
 > two call a third private function such as init().
@@ -394,6 +394,76 @@ PriorityCustomer::operator=(const PriorityCustomer& rhs)
 > code in a third function.
 
 ## Ch3: Resource management  
+
+### **Item 13:** Use objects to manage resources  
+Managing resources manually is very error prone and should be avoided.
+Consider the following:
+```cpp
+void f()
+{
+    Investment * pInv = createInvestment(); // factory function
+    ...                                     // use pInv
+
+    delete pInv;                            // release object
+}
+```
+This may look reasonable but there are many ways it could fail to delete
+`pInv`. if there is a pre-mature return within the function, control would
+never reach the delete. Another situation is if `createInvestment()` and
+`delete pInv` were in a loop that then breaks early. When this happens,
+there will be a leak which will also affect any other resources helf by
+*that* object.
+
+Technically, carefull programming an avoid this issues, but this is not
+realistic. As the code is maintained, someone may add a pre-mature return
+without realising the consequences. Or someone may add an exception in a
+function that did not use exceptions which will then cause a leak.
+
+To avoid all of this, we can put resources into a resource managing object
+which will then free the resources automatically when the destructor is
+called.
+
+The STL has smart pointers that are tailormade for resources that are
+dynamically allocated on the heap and are used only within a single
+block or function.
+
+```cpp
+void f()
+{
+    std::unique_ptr<Investment> pInv(createInvestment());
+    ...
+}
+```
+This example demonstrates two critical aspects of using objects to manage
+resources:
+- ==**Resources are acquired and immediately turned over to
+resource-managing objects.**==  The idea that resources are acquired and
+immediately turned over to a resource managing object is referred to as
+*Resource Acquisition is Initialization*(RAII).
+- ==**Resource-managing objects use their destructors to ensure that
+resources are released.**== Destructors are automatically called when an object
+goes out of scope so resources are released regardless of how control
+leaves a block.
+
+> [!abstract] Summary  
+> - To prevent leaks, use RAII objects that acquire objects in their
+>constructor and delete them in their destructor
+>- Two most common RAII classes are std::unique_ptr and
+>std::shared_ptr
+
+### **Item 14:** Think carefully about copying behaviour in resource-managing classes  
+Not all resources are heap based. For these resources, unique_ptr and
+shared_ptr are generally inappropriate as resource handlers.
+
+
+### **Item 15:** Provide access to raw resources in resource-managing classes  
+
+
+### **Item 16:** Use the same form in corresponding uses of `new` and `delete`  
+
+
+### **Item 17:** Store newed objects in smart pointers in standalone statements  
+
 
 ## Ch4: Designs and declarations  
 
