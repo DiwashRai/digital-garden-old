@@ -517,7 +517,7 @@ still be the correct choice. Here is an example of a Font class that
 manages an underlying FontHandle resource with an implicit conversion
 function.
 ```cpp
-Font {
+class Font {
 public:
     ...
     operator FontHandle() const { return f; }
@@ -618,6 +618,88 @@ made the previous 1 line version of these two statements.
 
 
 ## Ch4: Designs and declarations  
+
+### **Item 18:** Make interfaces easy to use correctly and hard to use incorrectly.  
+If clients use your code incorrectly, ==your interface is partially to blame==.
+Consider the design below for a Date class:
+```cpp
+class Date {
+public:
+    Date (int month, int day, int year);
+    ...
+};
+```
+Two errors can easily happen:
+- Client passes in day value into month. `Date d(30, 3, 1995);`
+- Client passes in invalid value for month or date. `Date d(3, 40, 1995);`
+
+Many similar client errors can be fixed by using simple wrapper with
+explicit constructors.
+```cpp
+struct Day {
+    explicit Day(int d)
+    : val(d) {}
+
+    int val;
+};
+Date::Date(const Month& m, const Day& d, const Year& y);
+```
+
+Full fledged classes for day, month and year would be even better but
+even structs are enough to show that introducing types can prevent a
+interface usage errors.
+
+Once the right types are being used, you can then progress to limiting the
+values of those types if it is reasonable to do so. Enums can be used to do
+this but they are not as typesafe as we would like as they can be used like
+ints.
+
+```cpp
+class Month {
+    static Month Jan() { return Month(1); }
+    static Month Feb() { return Month(2); }
+    ...
+}
+Date d(Month::Mar(), Day(30), Year(1995));
+```
+
+> [!tip] Hint  
+> This item was probably written before scoped enums (enum classes)
+> were available. Now you probably could replace this with enum classes.
+
+*Another way to prevent client errors is to add const.* For example you
+can const qualify operator* which can prevent this error  
+`if (a * b = c)...`  
+This is an assignment when it should have been a comparison.
+
+*Try to make your interfaces behave consistently as possible.* Consistency
+is one of the most important characteristic to making easy to use
+interfaces. Conversely, inconsistency leads to aggravating interfaces
+
+*Any interface that relies on the client to remember to do something is
+prone to incorrect use, because clients cant forget to do it.* An example
+is returning raw pointers.
+
+### **Item 19:** Treat class design as type design.  
+
+
+### **Item 20:** Prefer pass-by-reference-to-const to pass-by-value.  
+
+
+### **Item 21:** Don't try to return a reference when you must return an object.  
+
+
+### **Item 22:** Declare data members private.  
+
+
+### **Item 23:** Prefer non-member non-friend functions to member functions.  
+
+
+### **Item 24:** Declare non-member functions when type conversions should apply to all parameters.  
+
+
+### **Item 25:** Consider support for a non-throwing swap.  
+
 
 ## Ch5: Implementations  
 
