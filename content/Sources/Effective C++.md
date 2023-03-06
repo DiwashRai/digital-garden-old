@@ -678,7 +678,29 @@ interfaces. Conversely, inconsistency leads to aggravating interfaces
 
 *Any interface that relies on the client to remember to do something is
 prone to incorrect use, because clients cant forget to do it.* An example
-is returning raw pointers.
+is returning raw pointers.  
+`Investment* createInvestment();`  
+This function creates the opportunity for two errors: not deleting the
+pointer and deleting it twice. This can be avoided by returning a smart
+pointer in the first place.  
+`std::shared_ptr<Investment> createInvestment();`  
+In fact shared_pt also make sit possible to get rid of other errors with the
+ability to specify a custom release function (deleter). It can also get rid
+of the cross-DLL problem. This is a problem where an object is created
+using `new` in one DLL but is deleted in a different DLL. shared_ptr gets
+rid of this as its default deleter uses `delete` from the same DLL where
+shared_ptr is created.
+
+> [!abstract] Summary  
+> - Strive to create interfaces that are easy to use correctly but difficult
+> to use incorrectly.
+> - For correct use: maintain consistency in interfaces and use built-in
+> types for behavioural compatiblity.
+> - For error prevention: create new types, restrict operations on types,
+> constrain object values, and eliminate client resource management
+> responsibilities.
+> - std::shared_ptr supports custom deleters. This prevents cross DLL
+> problem and can be used to automatically unlock mutexes.
 
 ### **Item 19:** Treat class design as type design.  
 
