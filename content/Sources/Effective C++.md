@@ -703,10 +703,95 @@ shared_ptr is created.
 > problem and can be used to automatically unlock mutexes.
 
 ### **Item 19:** Treat class design as type design.  
+Look at class designing as type designing. This means as a C++ developer
+you are a *type designer*. Designing good classes is a challenge because
+designing good types are a challenge.
+
+To understand the issues you face which will help you design your type
+you should consider the following questions:
+- How should objects of your new type be created and destroyed?
+- How should object initialisation differ from object assignment?
+- What does it mean for objects of your new type to be passed by value?
+- What are the restrictions on legal values of your new type?
+- Does your new type fit into an inheritance graph?
+- What kind of type conversion are allowed for your new type? - consider
+implicit and explicit conversions. You may need conversion functions if you
+are looking to make it explicit only.
+- What operators and functions make sense for the new type?
+- What standard functions should be disallowed? - declare them private or
+delete them(C++11).
+- Who should have access to the members of your new type?
+- What is the "undeclared interface" of your new type? - what guarantees
+does it offer with respect to performance, exception safety and resource
+usage.
+- How general is your new type?
+- Is a new type really what you need? - if it's a family of types, you
+might want a class template.
+
+> [!abstract] Summary  
+> Class design is type design. When designing a new type, consider all 12
+> questions listed in this item.
 
 
 ### **Item 20:** Prefer pass-by-reference-to-const to pass-by-value.  
+C++ passes by value by default - function parameters are initialised with
+copies of the actual argument and function callers get back a copy of the
+returned value. These copies are produced by the objects copy constructor
+which makes it an expensive operation.
 
+Consider the following:  
+```cpp
+class Person {
+public:
+    Person();
+    virtual ~Person();
+    ...
+private:
+    std::string name;
+    std::string address;
+};
+
+class Student: public Person {
+public:
+    Student();
+    virtual ~Student();
+    ...
+private:
+    std::string schoolName;
+    std::string schoolAddress;
+};
+
+// function declaration
+bool validateStudent(Student s);
+
+Student plato;
+bool platoIsOk = validateStudent(plato);
+```
+
+When the validateStudent function is called the cost is 1 call to the
+copy constructor to initialise the parameter and one call to the destructor
+when the function returns. Furthermore, the strong objects are also copied
+and destroyed. With construction and destruction of the 4 strings
+accounted for, ther are 6 calls to constructors and destructors.
+
+Pass by reference-to-const solves this. The const is essential as
+previously the callers were shielded from any changes happening to the
+Student object as it was a copy. Now that it is a reference, const is
+required to provide that assurance.
+
+Passig parameters by reference also prevents the *slicing problem*. This is
+when you pass a derived class into a function that accepts the base class.
+If you do this by value, the base class constructor will be called and the
+derived class part of the object will not be copied. Then when you call the
+function that may have been overriden in the derived class, the base class
+version will be called.
+
+If you pass by reference (or pointer) the object will behave like the actual
+object that is passed in.
+
+References are implemented as pointers under the hood of a C++ compiler.
+This means that for built-in types (e.g.int) it is reasonable to choose to
+pass-by-value.
 
 ### **Item 21:** Don't try to return a reference when you must return an object.  
 
