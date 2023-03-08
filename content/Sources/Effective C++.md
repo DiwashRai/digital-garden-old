@@ -793,14 +793,217 @@ References are implemented as pointers under the hood of a C++ compiler.
 This means that for built-in types (e.g.int) it is reasonable to choose to
 pass-by-value.
 
-### **Item 21:** Don't try to return a reference when you must return an object.  
+Built-in types are small which can lead people to conclude that small types
+can be good pass-by-value candidates. However, there are a few reasons
+that this should not be done. Small types can sometimes be only small
+as they contain only a pointer, however, the object that the pointer points
+to might then be expensive to copy. Another reason is that compilers will
+treat built-in types differently to user-defined types. For example,
+compilers can refuse to put user-defined types that consist of just a
+double in the register even if it will do so with a naked double. Finally,
+user-defined types might change in the future so something that is small
+now can increase in size later.
 
+==Generally, only built-in types, STL iterators and function object types can
+reasonably be assumed as good pass-by-value candidates==.
+
+> [!abstract] Summary  
+> - Prefer pass-by-reference-to-const over pass-by-value for efficiency
+> and to sidestep the slicing problem.
+> - The exceptions to the rule are built-in types, STL iterators and
+> function object types.
+
+### **Item 21:** Don't try to return a reference when you must return an object.  
+Do not be over zealous in the pursuit of eliminating the 'evil' of
+pass-by-value. This can lead to passing references of objects that do not
+exist.
+
+Consider a class representing rational numbers.
+```cpp
+class Rational {
+public:
+    Rational(int numerator = 0,
+             int denominator = 1);
+    ...
+private:
+    int n, d;
+friend:
+    const Rational
+      operator*(const Rational& lhs,
+                const Rational& rhs);
+};
+```
+
+The `operator*` function returns the result object by value. The question is,
+can you avoid the cost of the object's deconstruction and construction?
+
+Example scenario:
+```cpp
+Rational a(1,2); // 1/2
+Rational b(3,5); // 3/5
+
+Rational c = a * b; // 1/2 x 3/5 = 3/10
+```
+
+It may be tempting to consider the following implementation:
+```cpp
+const Rational& operator*(const Rational& lhs,
+                          const Rational& rhs)
+{
+    Rational result(lhs.n * rhs.n, lhs.d * rhs.d);
+    return result; // returns a reference
+}
+```
+This is useless as the constructor and deconstructor is still being called.
+More crucially though, the function returns a reference to a local object
+which will immediately go out of scope and we are in undefined territory.
+
+Now you might consider returning a reference to an object on the heap.
+Yet again, this would be bad. You still have to pay for the constructor, but
+now the client needs to remember to delete the newed object. And even if
+they are, how do they handle a situation like this:  
+```cpp
+Rational w, x, y, z;
+w = x * y * z;
+```
+There are two calls to operator* but now way to delete the first call. This
+is a guaranteed resource leak.
+
+Using a static 'result' object is also a no go. It will run into problems with
+situations like this:
+```cpp
+Rational a, b, c, d;
+if ((a * b) == (c * d))
+    ...
+```
+This will always be true as there are two active calls to operator* when
+operator== is called. They will always be equal as they share the static
+result object.
+
+The right answer is simply something such as:
+```cpp
+inline const Rational operator*(const Rational& lhs,
+                                const Rational& rhs)
+{
+    return Rational(lhs.n * rhs.n, lhs.d * rhs.d);
+}
+```
+
+> [!abstract] Summary  
+> Never return a pointer or reference to a local stack object, a reference
+> to a heap-allocated object, or a pointer or reference to a local static
+> object if there is a chance that more than one such object will be
+> needed.
 
 ### **Item 22:** Declare data members private.  
+The case for this item will follow this format: highlight why public data
+members is bad -> highlight why all the arguments also apply to protected
+members -> conclude that private is the way to go.
 
+If everything in the public interface is a function, clients won't have to
+recall whether to use parantheses to access members or not. Consistency.
+
+Functions provide fine-grained control over the accessiblity of it's data
+members.
+
+Finally, encapsulation. If access to a data member is via a function, it is
+possible to then later replace the data member with a computation and your
+clients will not be aware or need to be aware at all.
+
+A quick example is a class that contains speed data:
+```cpp
+class SpeedDataCollection {
+    ...
+public:
+    void addValue(int speed);
+    double averageSoFar() const;
+    ...
+}
+```
+You can use an approach that maintains a data member that contains the
+running average and the `averageSoFar()` function just returns this value OR
+an approach where the `averageSoFar()` is calculated from all the stored
+values whenever it is called. One has better performance on
+`averageSoFar()` at the cost of space and the other has worse performance
+but doesn't take as much space.  
+With encapsulation, you can interchange these easily.
+
+==Encapsulation is more valuabled than it might initially appear==. If data
+members are hidden, class invariants can be maintained. This has benefits
+when it comes to threaded environments as well. ==Hiding details is like
+reserving the right to change the implementation details at a later date==.
+You will realise that even if you own the source code to a class, your
+ability to change anything public will be severely limited.
+
+*The argument for protected members is identical*. This is because
+somethings encapsulation is inversely proportional to the amount of code
+that could break if that something changes. For public members this can
+be 'all client code' which is an unknowably large amount. How about for
+protected members? The answer is 'all the derived classes that access it'
+which is yet again an unknowably large amount of code.
+
+==Essentially there are two levels of access: private and everything
+else.==
+
+> [!abstract] Summary  
+> - Declare data members private.
+> - Protected is no more encapsulated than private.
 
 ### **Item 23:** Prefer non-member non-friend functions to member functions.  
+Consider a web browser class which may have functions to manage the
+cache, history and cookies:
+```cpp
+class WebBrowser {
+public:
+    ...
+    void clearCache();
+    void clearHistory();
+    void removeCookies();
+    ...
+};
+```
 
+Now consider two ways of implementing a function that combines all three.
+```cpp
+class WebBrowser {
+    public:
+    ...
+    void clearEverything();
+    ...
+};
+
+void clearBrowser(WebBrowser& wb) // non-member function
+{
+    wb.clearCache();
+    wb.clearHistory();
+    wb.removeCookies();
+}
+```
+
+Which is better? The member or non-member function? A misunderstanding
+of object oriented principles may lead people to conclude that data and
+functions that operate on them should be bundled together. This is wrong.
+Object oriented principles dictate that data should be as *encapsulated* as
+possible.
+
+The greater something is encapsulated, the greater our ability to change
+it. Adding another member function increases the public functions that
+access the private data members. In the example it would go from 3 to 4.
+However, the non-member function does not affect the number of
+functions that can access the private parts of the class. Therefore, it is
+more encapsulated with a non-member function.
+
+A way to 'bundle' convenience/utility functions without affecting
+encapsulation is to use namespaces. This is a very flexible approach as
+convenience functions can be spread out over different files but in the
+same namespace. Clients can then selectively `#include` only the parts
+that they require. It also allows for easy extensibility by the clients
+or by the writers in future.
+
+> [!abstract] Summary  
+> Prefer non-member non-friend fucntions to member functions. Doing so
+> increases encapsulation, packaging flexibility, and functional
+> extensibility.
 
 ### **Item 24:** Declare non-member functions when type conversions should apply to all parameters.  
 
