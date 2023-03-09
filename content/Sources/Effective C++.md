@@ -1006,10 +1006,294 @@ or by the writers in future.
 > extensibility.
 
 ### **Item 24:** Declare non-member functions when type conversions should apply to all parameters.  
+Classes supporting implicit type conversions is generally a bad idea,
+however there are exceptions. A common exception is for numerical types.
 
+Consider a `Rational` class:
+```cpp
+class Rational {
+public:
+    Rational(int numerator = 0, int denominator = 1);
+    int numerator() const;
+    int denominator() const;
+private:
+    ...
+};
+```
+
+Next lets say you want to support multiplication of Rational numbers. The
+question is should it be implemented as a member function, non-member
+function or non-member function that are friends.
+
+Well lets consider the member function version:
+```cpp
+class Rational {
+public:
+    ...
+    const Rational operator*(const Rational& rhs) const;
+};
+```
+
+This design allows for the following:
+```cpp
+Rational oneEighth(1,8);
+Rational oneHalf(1,2);
+
+Rational result = oneHalf *oneEighth;  //fine
+result = result * oneEighth;           //fine
+```
+
+However, you also want to support mixed-mode operations where Rationals
+might be multiplied with ints for example. Lets see what happens.
+
+```cpp
+result = oneHalf * 2;       //fine
+result = 2 * oneHalf;       //error
+```
+
+The source of the problem is clearer if you rewrite it:
+```cpp
+result = oneHalf.operator*(2);    //fine
+result = 2.operator*(oneHalf);    //error
+```
+
+oneHalf is an instance of a class containing the operator* where as 2 is
+not. But then this raises the question, why does it work when you pass
+in an int (2)? This is because of implicit conversion. Compilers can figure
+out that although you are passing an int into a function that requires a
+`Rational`, the int can be use to construct the `Rational` so that's what it
+does.
+
+This means that if the constructor for `Rational` was declared explicit,
+then it would fail.
+
+Anyhow, the key to the solution of supporting operations both ways around
+is that implicit conversion is only available for parameters that are listed
+in the parameter list. Here is the solution:
+
+```cpp
+class Rational {
+    ...   // operator* not defined/declared
+};
+
+const Rational operator*(const Rational& lhs,
+                         const Rational& lhs);
+{
+    ...
+}
+
+Rational oneFourth(1, 4);
+Rational result;
+
+result = oneFourth * 2;
+result = 2 * oneFourth;   // both finally working
+```
+
+Should we make this function a friend function? No. It can already achieve
+what it needs to do without breaking encapsulation. A function should not
+be made a friend just because it is 'related' to it.
+
+> [!abstract] Summary  
+> If you need type conversions on all parameters to a function including
+> the one pointed to by `this`, the function must be a non-member.
 
 ### **Item 25:** Consider support for a non-throwing swap.  
+Swap is an interesting function that is worth some special consideration.
+Here is a default implementation for swap:
 
+```cpp
+namespace std {
+    template<typename T>
+    void swap(T& a, T& b)
+    {
+        T temp(a);
+        a = b;
+        b = temp;
+    }
+}
+```
+
+This default implementation may not thrill you as it involves copying three
+objects. For some types, none of this copies will be necessary. For types
+like this, the default swap implementation will slow down your code.
+
+The most common example for types like these are those consisting
+primarily of pointers to another type that then contains the real data. A
+common manifestation of this design approach is the "pimpl idiom"
+("pointer to implementation" - item 31). An example using a Widget class:
+
+```cpp
+class WidgetImpl {
+public:
+    ...
+private:
+    int a, b,c;             //possibly lots of data
+    std::vector<double> v;  //expensive to copy
+};
+
+class Widget {
+public:
+    Widget(const Widget& rhs);
+    Widget& operator=(ocnst Widget& rhs)
+    {
+        ...
+        *pImpl = *(rhs.pImpl);
+        ...
+    }
+    ...
+private:
+    WidgetImpl *pImpl;
+};
+```
+
+In this example, all we need to do to swap Widget objects is to swap
+their underlying `pImpl` pointers. However, the default swap function does
+not know this. It would result in copy three widgets and ALSO three
+WidgetImpl objects. Very inefficient.
+
+We would like to tell std::swap how to more efficiently handle the swap.
+```cpp
+namespace std {
+    template<>
+    void swap<Widget>(Widget& a, Widget& b)
+    {
+        swap(a.pImpl, b.pImpl);  // wont compile. private ptrs
+    }
+}
+```
+The "template<>" at the begining of the fucntion says that this is a *total
+template specialisation* for std::swap and the "< Widget >" after the name
+of the function says that the specialisation is for when T is Widget.
+
+In general, we are not permitted to alter contents of the std namespace,
+but we are allowed to totally specialise standard template for our own
+types.
+
+The above code won't compile due to `pImpl` being private. We could make
+the specialisation a friend, but the convention is to declare a public
+member function calle dswap that does the actual swapping, then
+specialise the std::swap to call the member function.
+
+```cpp
+class Widget {
+public:
+    ...
+    void swap(Widget& other)
+    {
+        using std::swap; //need for this explained below
+        swap(pImpl, other.pImpl);
+    }
+    ...
+};
+namespace std {
+    template<>
+    void swap<Widget>(Widget& a, Widget& b)
+    {
+        a.swap(b);
+    }
+}
+```
+
+This compiles AND is consistent with the STL containers.
+
+But what if `Widget` and `WidgetImpl` were class *templates* instead of
+classes. Putting a swap member function in Widget is as easy as before.
+The trouble arises with the specialisation. We 'want' to write:
+```cpp
+namespace std {
+    template<typename T>
+    void swap<Widget<T> > (Widget<T>& a,
+                           Widget<T>& b)
+    {a.swap(b);}
+}
+```
+
+This looks reasonable but is illegal code. C++ supports partial 
+specialisation for classes but not function templates. To partially
+specialise a function template, the usual approach is to simply use an
+overload.
+```cpp
+namespace std {
+    tempalte<typename T>
+    void swap(Widget<T>& a, Widget<T>& b)
+    {a.swap(b);}
+}
+```
+
+In general this would be fine, but the std namespace is special. You can
+totally specialize templates in std, but you can't add new templates (or
+classes or functions or anything else). If you break this rule, you are
+once again in the land of `undefined`.
+
+So what do we actually do? We still declare a non-member swap that calls
+the member swap, we just don't declare the non-member to be a
+specialisation or overloading of std::swap.
+
+```cpp
+namespace WidgetStuff {
+    ...
+    template<typename T>
+    class Widget{...};
+    ...
+
+    template<typename T>
+    void swap(Widget<T>& a, Widget<T>& b)
+    { a.swap(b); }
+}
+```
+
+Now, if any code anywhere calls swap on two Widget objects, the name 
+lookup rules in C++ will find the Widget-specific version in WidgetStuff.
+
+This approach works as well for classes as for class templates, so it 
+seems like we should use it always. Unfortunately, there is a special
+reason for specialising std::swap for classes, so if you want to have
+your class specific swap be called in as many contexts as possible
+(which you definitely do), you need to write a non-member version in
+the same namespace as your class AND a specialisation of std::swap.
+
+The above is for `swap` authors but we should consider one thing for th
+clients.
+```cpp
+template<typename T>
+void doSomething(T& obj1, T& obj2)
+{
+    ...
+    swap(obj1, obj2);
+    ...
+}
+```
+Which swap does this call? The general one in std? or the specialisation of
+the std? or a T-specific one? What you want to do is try to use the
+T-specific one, but if not fall back on the general std::swap.  
+Heres how you can do this:
+```cpp
+template<typename T>
+void doSomething(T& obj1, T& obj2)
+{
+    using std::swap;        // make std::swap available
+    ...
+    swap(obj1, obj2);       // call best swap
+    ...
+}
+```
+
+The C++ lookup rules will ensure the best swap is called so don't worry
+too much. Just remember not to qualify it:
+`std::swap(obj1, obj2);`  
+Qualifying swap does happen, that's why it's in your best interest to aslo
+implement the specialised version.
+
+> [!abstract] Summary  
+> - Provide a swap member function when std::swap would be 
+> infefficient for your type. Make sure swap does not throw exceptions.
+> - If you offer a member swap, make sure to also offier a non-member
+> swap that calls the member. For classes (not templates), specialise
+> std::swap too.
+> - When calling swap, employ a using declaration for std::swap, then
+> call swap without namespace qualification.
+> - It's fine to totally specialise std templates for user-defined type,
+> but never try to add something completely new to std.
 
 ## Ch5: Implementations  
 
