@@ -11,7 +11,7 @@ Topics: Software Engineering
 <script defer src=https://diwashrai.github.io/digital-garden/js/code-title.ce4a43f09239a9efb48fee342e8ef2df.min.js></script>
 <script defer src=https://diwashrai.github.io/digital-garden/js/clipboard.2913da76d3cb21c5deaa4bae7da38c9f.min.js></script>
 <script defer src=https://diwashrai.github.io/digital-garden/js/callouts.7723cac461d613d118ee8bb8216b9838.min.js></script>
-<script>const SEARCH_ENABLED=!1,LATEX_ENABLED=!0,PRODUCTION=!0,BASE_URL="https://diwashrai.github.io/digital-garden/",fetchData=Promise.all([fetch("https://diwashrai.github.io/digital-garden/indices/linkIndex.794229e4be2d39f1abf38f2f46f56d67.min.json").then(e=>e.json()).then(e=>({index:e.index,links:e.links})),fetch("https://diwashrai.github.io/digital-garden/indices/contentIndex.c3cfb6d9683fe372a4fdc5114bfd8e3f.min.json").then(e=>e.json())]).then(([{index:e,links:t},n])=>({index:e,links:t,content:n})),render=()=>{const e=new URL(BASE_URL),t=e.pathname,n=window.location.pathname,s=t==n;addCopyButtons(),addTitleToCodeBlocks(),addCollapsibleCallouts(),initPopover("https://diwashrai.github.io/digital-garden",!0);const o=document.getElementById("footer");if(o){const e=document.getElementById("graph-container");if(!e)return requestAnimationFrame(render);e.textContent="";const t=s&&!0;drawGraph("https://diwashrai.github.io/digital-garden",t,[{"/moc":"#4388cc"}],t?{centerForce:1,depth:-1,enableDrag:!0,enableLegend:!1,enableZoom:!0,fontSize:.5,linkDistance:1,opacityScale:3,repelForce:1,scale:1}:{centerForce:1,depth:1,enableDrag:!0,enableLegend:!1,enableZoom:!0,fontSize:.6,linkDistance:1,opacityScale:3,repelForce:2,scale:1.2})}var i=document.getElementsByClassName("mermaid");i.length>0&&import("https://unpkg.com/mermaid@9/dist/mermaid.esm.min.mjs").then(e=>{e.default.init()});function a(n){const e=n.target,t=e.className.split(" "),s=t.includes("broken"),o=t.includes("internal-link");plausible("Link Click",{props:{href:e.href,broken:s,internal:o,graph:!1}})}const r=document.querySelectorAll("a");for(link of r)link.className.includes("root-title")&&link.addEventListener("click",a,{once:!0})},init=(e=document)=>{addCopyButtons(),addTitleToCodeBlocks(),renderMathInElement(e.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"$",right:"$",display:!1}],macros:{'’':"'"},throwOnError:!1})}</script><script type=module>
+<script>const SEARCH_ENABLED=!1,LATEX_ENABLED=!0,PRODUCTION=!0,BASE_URL="https://diwashrai.github.io/digital-garden/",fetchData=Promise.all([fetch("https://diwashrai.github.io/digital-garden/indices/linkIndex.794229e4be2d39f1abf38f2f46f56d67.min.json").then(e=>e.json()).then(e=>({index:e.index,links:e.links})),fetch("https://diwashrai.github.io/digital-garden/indices/contentIndex.e1a78cee67be07c988d8bc99f47f1ae0.min.json").then(e=>e.json())]).then(([{index:e,links:t},n])=>({index:e,links:t,content:n})),render=()=>{const e=new URL(BASE_URL),t=e.pathname,n=window.location.pathname,s=t==n;addCopyButtons(),addTitleToCodeBlocks(),addCollapsibleCallouts(),initPopover("https://diwashrai.github.io/digital-garden",!0);const o=document.getElementById("footer");if(o){const e=document.getElementById("graph-container");if(!e)return requestAnimationFrame(render);e.textContent="";const t=s&&!0;drawGraph("https://diwashrai.github.io/digital-garden",t,[{"/moc":"#4388cc"}],t?{centerForce:1,depth:-1,enableDrag:!0,enableLegend:!1,enableZoom:!0,fontSize:.5,linkDistance:1,opacityScale:3,repelForce:1,scale:1}:{centerForce:1,depth:1,enableDrag:!0,enableLegend:!1,enableZoom:!0,fontSize:.6,linkDistance:1,opacityScale:3,repelForce:2,scale:1.2})}var i=document.getElementsByClassName("mermaid");i.length>0&&import("https://unpkg.com/mermaid@9/dist/mermaid.esm.min.mjs").then(e=>{e.default.init()});function a(n){const e=n.target,t=e.className.split(" "),s=t.includes("broken"),o=t.includes("internal-link");plausible("Link Click",{props:{href:e.href,broken:s,internal:o,graph:!1}})}const r=document.querySelectorAll("a");for(link of r)link.className.includes("root-title")&&link.addEventListener("click",a,{once:!0})},init=(e=document)=>{addCopyButtons(),addTitleToCodeBlocks(),renderMathInElement(e.body,{delimiters:[{left:"$$",right:"$$",display:!0},{left:"$",right:"$",display:!1}],macros:{'’':"'"},throwOnError:!1})}</script><script type=module>
     import { attachSPARouting } from "https:\/\/diwashrai.github.io\/digital-garden\/js\/router.d6fe6bd821db9ea97f9aeefae814d8e7.min.js"
     attachSPARouting(init, render)
   </script><script defer data-domain=diwashrai.github.io/digital-garden src=https://plausible.io/js/script.js></script>
@@ -1344,4 +1344,224 @@ to call their base class counterparts first:</p><div class=highlight><div class=
 </span></span><span class=line><span class=cl>    <span class=p>...</span>
 </span></span><span class=line><span class=cl><span class=p>};</span>
 </span></span></code></pre></td></tr></table></div></div><p>In this code, it may appear to be casting <code>this</code>, the current object, into its
-base class and then calling <code>onResize()</code> on it.</p><a href=#item-28-avoid-returning-handles-to-object-internals><h3 id=item-28-avoid-returning-handles-to-object-internals><span class=hanchor arialabel=Anchor># </span><strong>Item 28:</strong> Avoid returning &ldquo;handles&rdquo; to object internals.</h3></a><a href=#item-29-strive-for-exception-safe-code><h3 id=item-29-strive-for-exception-safe-code><span class=hanchor arialabel=Anchor># </span><strong>Item 29:</strong> Strive for exception-safe code.</h3></a><a href=#item-30-understand-the-ins-and-outs-of-linlining><h3 id=item-30-understand-the-ins-and-outs-of-linlining><span class=hanchor arialabel=Anchor># </span><strong>Item 30:</strong> Understand the ins and outs of linlining.</h3></a><a href=#item-31-minimise-compilation-dependencies-between-files><h3 id=item-31-minimise-compilation-dependencies-between-files><span class=hanchor arialabel=Anchor># </span><strong>Item 31:</strong> Minimise compilation dependencies between files.</h3></a><a href=#ch6-inheritance-and-object-oriented-design><h2 id=ch6-inheritance-and-object-oriented-design><span class=hanchor arialabel=Anchor># </span>Ch6: Inheritance and Object-Oriented Design</h2></a><a href=#ch7-templates-and-generic-programming><h2 id=ch7-templates-and-generic-programming><span class=hanchor arialabel=Anchor># </span>Ch7: Templates and generic programming</h2></a><a href=#ch8-customising-new-and-delete><h2 id=ch8-customising-new-and-delete><span class=hanchor arialabel=Anchor># </span>Ch8: Customising <code>new</code> and <code>delete</code></h2></a><a href=#ch9-miscellany><h2 id=ch9-miscellany><span class=hanchor arialabel=Anchor># </span>Ch9: Miscellany</h2></a></article><hr><div class=page-end id=footer><div class=backlinks-container><h3>Backlinks</h3><ul class=backlinks><li>No backlinks found</li></ul></div><div><script async src=https://cdn.jsdelivr.net/npm/d3@6.7.0/dist/d3.min.js integrity="sha256-+7jaYCp29O1JusNWHaYtgUn6EhuP0VaFuswhNV06MyI=" crossorigin=anonymous></script><h3>Interactive Graph</h3><div id=graph-container></div><style>:root{--g-node:var(--secondary);--g-node-active:var(--primary);--g-node-inactive:var(--visited);--g-link:var(--outlinegray);--g-link-active:#5a7282}</style><script src=https://diwashrai.github.io/digital-garden/js/graph.6579af7b10c818dbd2ca038702db0224.js></script></div></div><div id=contact_buttons><footer><p>Made by Diwash Rai using <a href=https://github.com/jackyzha0/quartz>Quartz</a>, © 2023</p><ul><li><a href=https://diwashrai.github.io/digital-garden/>Home</a></li><li><a href=https://github.com/DiwashRai>GitHub</a></li></ul></footer></div></div></body></html>
+base class and then calling <code>onResize()</code> on it. However, what it does is
+creates a new, <mark>temporary copy of the base class</mark> part of <code>this</code>, calls
+<code>Window::onResize</code> on the copy of the base class part and continues with
+the function and performs the <code>SpecialWindow</code> specific actions on the
+current object.</p><p>The object might now be in an invalid state where the base class
+modifications have not been made but the derived class parts have been.
+To handle this properly you should do the following:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>class</span> <span class=nc>SpecialWindow</span><span class=o>:</span> <span class=k>public</span> <span class=n>Window</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=k>public</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=k>virtual</span> <span class=kt>void</span> <span class=n>onResize</span><span class=p>()</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>        <span class=n>Window</span><span class=o>::</span><span class=n>onResize</span><span class=p>();</span>
+</span></span><span class=line><span class=cl>        <span class=p>...</span>
+</span></span><span class=line><span class=cl>    <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span></code></pre></td></tr></table></div></div><p>If you are finding yourself wanting to cast, you could be approaching
+things in the wrong way.</p><p><code>dynamic_cast</code> is an extremely costly cast. One common implementation
+is partly based on string comparisons between class names. In an
+inheritance hierarchy of four levels, this would cost 4 calls to <code>strcmp</code>. Be
+wary of casts in general, but especially wary of dynamic_casts.</p><p>The need for dynamic_cast usually arises when you want to perform
+derived class operations on what you think is a derived class, but what
+you have is a pointer-to-base.</p><p>There are two possible solutions to avoid dynamic_casting for this reason:</p><ul><li>Use containers that store pointers to derived class objects directly.</li><li>Use virtual functions in the base class that will allow you to do what
+you need.</li></ul><blockquote class=abstract-callout><p>Summary</p><ul><li>Avoid casts whenever practical, especially dynamic_casts. Explore
+cast-free alternatives if a design requires casting.</li><li>If casting is necessary, hide it inside a function.</li><li>Prefer C++ style casts to old-style casts. Easier to spot and
+more specific about what they do.</li></ul></blockquote><a href=#item-28-avoid-returning-handles-to-object-internals><h3 id=item-28-avoid-returning-handles-to-object-internals><span class=hanchor arialabel=Anchor># </span><strong>Item 28:</strong> Avoid returning &ldquo;handles&rdquo; to object internals.</h3></a><p>Consider an implementation of a rectangle class that stores the upper-left
+corner and lower-right corner. Tok keep the <code>Rectangle</code> object small, the
+points that define it&rsquo;s extent aren&rsquo;t stored in the <code>Rectangle</code> itself, but
+an auxiliary struct that the rectangle points to.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span><span class=lnt>12
+</span><span class=lnt>13
+</span><span class=lnt>14
+</span><span class=lnt>15
+</span><span class=lnt>16
+</span><span class=lnt>17
+</span><span class=lnt>18
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>class</span> <span class=nc>Point</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=k>public</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>Point</span><span class=p>(</span><span class=kt>int</span> <span class=n>x</span><span class=p>,</span> <span class=kt>int</span> <span class=n>y</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=n>setX</span><span class=p>(</span><span class=kt>int</span> <span class=n>newVal</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=nf>setY</span><span class=p>(</span><span class=kt>int</span> <span class=n>newVal</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>struct</span> <span class=nc>RectData</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>Point</span> <span class=n>ulhc</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=n>Point</span> <span class=n>lrhc</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>class</span> <span class=nc>Rectangle</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=k>private</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>std</span><span class=o>::</span><span class=n>shared_ptr</span><span class=o>&lt;</span><span class=n>RectData</span><span class=o>&gt;</span> <span class=n>pData</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Because the clients of <code>Rectangle</code> need to be able to determine the extents
+of a rectangle, there are functions <code>upperLeft</code> and <code>lowerRight</code>. Because
+<code>Point</code> is a user-defined type and it is more efficient to return a reference,
+these functions return references.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>class</span> <span class=nc>Rectangle</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=k>public</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl>    <span class=n>Point</span><span class=o>&amp;</span> <span class=n>upperLeft</span><span class=p>()</span> <span class=k>const</span> <span class=p>{</span> <span class=k>return</span> <span class=n>pData</span><span class=o>-&gt;</span><span class=n>ulhc</span><span class=p>;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=n>Point</span><span class=o>&amp;</span> <span class=n>lowerRight</span><span class=p>()</span> <span class=k>const</span> <span class=p>{</span> <span class=k>return</span> <span class=n>pData</span><span class=o>-&gt;</span><span class=n>lrhc</span><span class=p>;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span></code></pre></td></tr></table></div></div><p>The design will compile, but it&rsquo;s wrong. The functions are declared const
+so they are designed to offer clients a way to learn what the points of the
+rectangle are, not to change them. However, since references to internal
+data members are returned, they can now be changed.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=n>Point</span> <span class=nf>coord1</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=n>point</span> <span class=nf>coord2</span><span class=p>(</span><span class=mi>100</span><span class=p>,</span> <span class=mi>100</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=k>const</span> <span class=n>Rectangle</span> <span class=nf>rec</span><span class=p>(</span><span class=n>coord1</span><span class=p>,</span> <span class=n>coord2</span><span class=p>);</span> <span class=c1>// rectangle 0,0 x 100,100
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl><span class=n>rec</span><span class=p>.</span><span class=n>upperLeft</span><span class=p>().</span><span class=n>setX</span><span class=p>(</span><span class=mi>50</span><span class=p>);</span>  <span class=c1>// now rec 50,0 x 100,100
+</span></span></span></code></pre></td></tr></table></div></div><p>Two lessons from this example:</p><ul><li>==A data member is only as encapsulated as the most accessible
+function returning reference to it==<ul><li>In this example, <code>ulhc</code> and <code>lrhc</code> are effectively public.</li></ul></li><li>==If a const member function returns a reference to data associated
+with an object that is stored outside the object itself, the called can now
+change that data.==</li></ul><p>The example involved references but the same would be true for pointers
+and iterators as they all act as <em>handlers</em>.</p><p>We generally think of an object&rsquo;s internals as it&rsquo;s data members ,but
+member functions not accessible to the general public are also part of
+an object&rsquo;s internals. This means that you should nver have a member
+function return a pointer to a less accessible member function.</p><p>The rectable example can be simply solved by adding const to their return
+types:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>class</span> <span class=nc>Rectangle</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=k>public</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=n>Point</span><span class=o>&amp;</span> <span class=n>upperLeft</span><span class=p>()</span> <span class=k>const</span> <span class=p>{</span> <span class=k>return</span> <span class=n>pData</span><span class=o>-&gt;</span><span class=n>ulhc</span><span class=p>;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=k>const</span> <span class=n>Point</span><span class=o>&amp;</span> <span class=n>lowerRight</span><span class=p>()</span> <span class=k>const</span> <span class=p>{</span> <span class=k>return</span> <span class=n>pData</span><span class=o>-&gt;</span><span class=n>lrhc</span><span class=p>;</span> <span class=p>}</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span></code></pre></td></tr></table></div></div><p>The clients can now &lsquo;read&rsquo; the points but not &lsquo;write&rsquo; into them.
+However, <code>upperLeft</code> and <code>lowerRight</code> are still returning &lsquo;handles&rsquo; to an
+object&rsquo;s internals and this can be problematic still. In particular, it can
+lead to &lsquo;dangling handles&rsquo;. Consider:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span><span class=lnt>11
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>class</span> <span class=nc>GUIObject</span><span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=p>};</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=c1>// returns a rectangle by value
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>const</span> <span class=n>Rectangle</span> <span class=nf>boundingBox</span><span class=p>(</span><span class=k>const</span> <span class=n>GUIObject</span><span class=o>&amp;</span> <span class=n>obj</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>
+</span></span><span class=line><span class=cl><span class=n>GUIObject</span> <span class=o>*</span><span class=n>pgo</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=c1>// get a ptr to upper left point of bounding box
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=k>const</span> <span class=n>Point</span> <span class=o>*</span><span class=n>pUpperLeft</span> <span class=o>=</span> <span class=o>&amp;</span><span class=p>(</span><span class=n>boundingBox</span><span class=p>(</span><span class=o>*</span><span class=n>pgo</span><span class=p>).</span><span class=n>upperLeft</span><span class=p>());</span>
+</span></span></code></pre></td></tr></table></div></div><p>Here the call to <code>boundingBox</code> returns a rectangle by value. <code>upperLeft</code> is
+then called on this rectangle and the pointer to this <code>Point</code> is assigned to
+<code>pUpperLeft</code>. Unfortunately, the temporary rectangle object will be
+destroyed. That will then also leave <code>pUpperLeft</code> pointing to a <code>Point</code> that
+no longer exists.</p><blockquote class=abstract-callout><p>Summary</p><ul><li>Avoid returning handles (references, pointers, or iterators) to
+object internals. Doing so maximises encapsulation, helps const
+member functions act const, and minimises the creation of dangling
+handlers.</li></ul></blockquote><a href=#item-29-strive-for-exception-safe-code><h3 id=item-29-strive-for-exception-safe-code><span class=hanchor arialabel=Anchor># </span><strong>Item 29:</strong> Strive for exception-safe code.</h3></a><p>There are two requirements for exception safety:</p><ul><li><strong>Leak no resources</strong></li><li><strong>Don&rsquo;t allow data structures to be corrupted</strong></li></ul><p>Consider a class for representing GUI menus with background images. The
+class is designed to be used in threaded environments so it has a mutex.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt> 1
+</span><span class=lnt> 2
+</span><span class=lnt> 3
+</span><span class=lnt> 4
+</span><span class=lnt> 5
+</span><span class=lnt> 6
+</span><span class=lnt> 7
+</span><span class=lnt> 8
+</span><span class=lnt> 9
+</span><span class=lnt>10
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=k>class</span> <span class=nc>PrettyMenu</span> <span class=p>{</span>
+</span></span><span class=line><span class=cl><span class=k>public</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl>    <span class=kt>void</span> <span class=n>changeBackground</span><span class=p>(</span><span class=n>std</span><span class=o>::</span><span class=n>istream</span><span class=o>&amp;</span> <span class=n>imgSrc</span><span class=p>);</span>
+</span></span><span class=line><span class=cl>    <span class=p>...</span>
+</span></span><span class=line><span class=cl><span class=k>private</span><span class=o>:</span>
+</span></span><span class=line><span class=cl>    <span class=n>Mutex</span> <span class=n>mutex</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=n>Image</span><span class=o>*</span> <span class=n>bgImage</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=kt>int</span> <span class=n>imageChanges</span><span class=p>;</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>Now here is a possible implementation of the <code>changeBackground</code> function:</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>void</span> <span class=n>PrettyMenu</span><span class=o>::</span><span class=n>changeBackground</span><span class=p>(</span><span class=n>std</span><span class=o>::</span><span class=n>istream</span><span class=o>&amp;</span> <span class=n>imgSrc</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>lock</span><span class=p>(</span><span class=o>&amp;</span><span class=n>mutex</span><span class=p>);</span>                <span class=c1>//acquire mutex
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=k>delete</span> <span class=n>bgImage</span><span class=p>;</span>              <span class=c1>//get rid of old bg
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=o>++</span><span class=n>imageChanges</span><span class=p>;</span>              <span class=c1>//update image change count
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>bgImage</span> <span class=o>=</span> <span class=k>new</span> <span class=n>Image</span><span class=p>(</span><span class=n>imgSrc</span><span class=p>);</span>  <span class=c1>//install new bg
+</span></span></span><span class=line><span class=cl><span class=c1></span>    <span class=n>unlock</span><span class=p>(</span><span class=o>&amp;</span><span class=n>mutex</span><span class=p>);</span>              <span class=c1>//release mutex
+</span></span></span><span class=line><span class=cl><span class=c1></span><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><p>This function fulfils none of the requirements for exception safety. It leaks
+resources as if <code>new Image(imgSrc)</code> throws, the mutex is never unlocked.
+As for data structure corruption, if <code>new Image</code> throws, <code>bgImage</code> is now
+pointing to a deleted object and also <code>imageChanges</code> has been incremented
+when the new image has not actually been installed.</p><p><em>Addressing the resource leak</em>. To do this we just have to use objects to
+help us manage resources.</p><div class=highlight><div class=chroma><table class=lntable><tr><td class=lntd><pre tabindex=0 class=chroma><code><span class=lnt>1
+</span><span class=lnt>2
+</span><span class=lnt>3
+</span><span class=lnt>4
+</span><span class=lnt>5
+</span><span class=lnt>6
+</span><span class=lnt>7
+</span><span class=lnt>8
+</span></code></pre></td><td class=lntd><pre tabindex=0 class=chroma><code class=language-cpp data-lang=cpp><span class=line><span class=cl><span class=kt>void</span> <span class=n>PrettyMenu</span><span class=o>::</span><span class=n>changeBackground</span><span class=p>(</span><span class=n>std</span><span class=o>::</span><span class=n>istream</span><span class=o>&amp;</span> <span class=n>imgSrc</span><span class=p>)</span>
+</span></span><span class=line><span class=cl><span class=p>{</span>
+</span></span><span class=line><span class=cl>    <span class=n>Lock</span> <span class=nf>ml</span><span class=p>(</span><span class=o>&amp;</span><span class=n>mutex</span><span class=p>);</span>   <span class=c1>// item 14. ensures release
+</span></span></span><span class=line><span class=cl><span class=c1></span>
+</span></span><span class=line><span class=cl>    <span class=k>delete</span> <span class=n>bgImage</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=o>++</span><span class=n>imageChanges</span><span class=p>;</span>
+</span></span><span class=line><span class=cl>    <span class=n>bgImage</span> <span class=o>=</span> <span class=k>new</span> <span class=n>Image</span><span class=p>(</span><span class=n>imgSrc</span><span class=p>);</span>
+</span></span><span class=line><span class=cl><span class=p>}</span>
+</span></span></code></pre></td></tr></table></div></div><blockquote class=tip-callout><p>info</p><p>Another good thing about resource management classes is that they
+usually make functions shorter.</p></blockquote><p><em>Now for the data structure corruption.</em> We now have a choice. Exception
+safe functions offer <mark>one of three guarantees.</mark></p><ul><li><strong>Basic guarantee.</strong> If an exception is thrown, everything in the program
+remains in a valid state. No objects or data structures corruped and
+internal state is consistent. e.g. for <code>changeBackground</code> the original
+background is kept or a default background is used.</li><li><strong>Strong guarantee.</strong> If an exception is thrown, the state of the program
+is left unchanged.</li></ul><a href=#item-30-understand-the-ins-and-outs-of-linlining><h3 id=item-30-understand-the-ins-and-outs-of-linlining><span class=hanchor arialabel=Anchor># </span><strong>Item 30:</strong> Understand the ins and outs of linlining.</h3></a><a href=#item-31-minimise-compilation-dependencies-between-files><h3 id=item-31-minimise-compilation-dependencies-between-files><span class=hanchor arialabel=Anchor># </span><strong>Item 31:</strong> Minimise compilation dependencies between files.</h3></a><a href=#ch6-inheritance-and-object-oriented-design><h2 id=ch6-inheritance-and-object-oriented-design><span class=hanchor arialabel=Anchor># </span>Ch6: Inheritance and Object-Oriented Design</h2></a><a href=#ch7-templates-and-generic-programming><h2 id=ch7-templates-and-generic-programming><span class=hanchor arialabel=Anchor># </span>Ch7: Templates and generic programming</h2></a><a href=#ch8-customising-new-and-delete><h2 id=ch8-customising-new-and-delete><span class=hanchor arialabel=Anchor># </span>Ch8: Customising <code>new</code> and <code>delete</code></h2></a><a href=#ch9-miscellany><h2 id=ch9-miscellany><span class=hanchor arialabel=Anchor># </span>Ch9: Miscellany</h2></a></article><hr><div class=page-end id=footer><div class=backlinks-container><h3>Backlinks</h3><ul class=backlinks><li>No backlinks found</li></ul></div><div><script async src=https://cdn.jsdelivr.net/npm/d3@6.7.0/dist/d3.min.js integrity="sha256-+7jaYCp29O1JusNWHaYtgUn6EhuP0VaFuswhNV06MyI=" crossorigin=anonymous></script><h3>Interactive Graph</h3><div id=graph-container></div><style>:root{--g-node:var(--secondary);--g-node-active:var(--primary);--g-node-inactive:var(--visited);--g-link:var(--outlinegray);--g-link-active:#5a7282}</style><script src=https://diwashrai.github.io/digital-garden/js/graph.6579af7b10c818dbd2ca038702db0224.js></script></div></div><div id=contact_buttons><footer><p>Made by Diwash Rai using <a href=https://github.com/jackyzha0/quartz>Quartz</a>, © 2023</p><ul><li><a href=https://diwashrai.github.io/digital-garden/>Home</a></li><li><a href=https://github.com/DiwashRai>GitHub</a></li></ul></footer></div></div></body></html>
