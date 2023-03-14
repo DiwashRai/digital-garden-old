@@ -1296,6 +1296,218 @@ implement the specialised version.
 > but never try to add something completely new to std.
 
 ## Ch5: Implementations  
+The lion's share of the battle is coming up with appropriate definitions for
+your classes and appropriate declarations for your functions. However,
+there are still implementation details to look out for.
+
+### **Item 26:** Postpone variable definitions as long as possible.  
+Defining a variable of a type with a constructor or destructor incurs the
+cost of construction and then the cost of destruction when the variable
+goes out of scope. Due to the inherent cost of using a variable, you want
+to avoid using them if possible.
+
+Consider a function that returns an encrypted version of a password if the
+password is long enough:
+```cpp
+std::string encryptPassword(const std::string& password)
+{
+    using namespace std;
+    string encrypted;
+
+    if (password.length() < MinimumPasswordLength) {
+        throw logic_error("Password is too short");
+    }
+    ...      // encrypted password into encrypted var
+    return encrypted;
+}
+```
+
+The object encrypted is unused an exception is thrown. Therefore, it's
+better if you postpone defining it until you know an exception won't be
+thrown.
+```cpp
+std::string encryptPassword(const std::string& password)
+{
+    using namespace std;
+
+    if (password.length() < MinimumPasswordLength) {
+        throw logic_error("Password is too short");
+    }
+    string encrypted;
+    ...      // encrypted password into encrypted var
+    return encrypted;
+}
+```
+
+However, even this version isn't tight enough as `encrypted` is defined
+without any initialisation arguments. This means it is default constructed
+and then only assigned a value later.
+
+Consider if the hard part of the function was done in this function:  
+`void encrypt(std::string& s);`  
+
+The code could then look like this:  
+```cpp
+std::string encryptPassword(const std::string& password)
+{
+    ...
+    string encrypted;
+    encrypted = password;
+
+    encrypt(encrypted);
+    return encrypted;
+}
+```
+
+This leads to a pointless default construction of `encrypted` though. Better
+would be:  
+```cpp
+std::string encryptPassword(const std::string& password)
+{
+    ...
+    string encrypted(password);
+    encrypt(encrypted);
+    return encrypted;
+}
+```
+
+==Not only should you postpone variable definition until right before you
+have to use the variable, but also until you have the initialisation
+parameters for it.==
+
+But what about loops?
+```cpp
+// Approach A: define outside loop
+Widget w;
+for (int i = 0; i < n; ++i) {
+    w = some value dependent on i;
+    ...
+}
+
+// Approach B: define inside loop
+for (int i = 0; i < n; ++i) {
+    Widget w(some value dependent on i);
+}
+```
+
+The associated costs are:
+- Approach A: 1 constructor + 1 destructor + n assignments
+- Approach B: n constructors + n destructors
+
+For classes where assignment is cheaper than constructor/destructor pair,
+approach A is generally more efficient. Otherwise, approach B is probably
+better. Default to approach B unless (1) assignment is cheaper than
+ctor/dtor pair and (2) you're dealing with performance sensitve area of
+code.
+
+> [!abstract] Summary  
+> Postpone variable definitons as long as possible. It improves clarity
+> and efficiency.
+
+### **Item 27:** Minimise casting.  
+Rules of C++ are designed to guarantee that type errors are impossible.
+However, casts subvert the type system. They should not be taken
+lightly.
+
+Old C style casts:
+- `(T) expression`
+- `T(expression)`
+There is no difference in the meaning between these forms.
+
+New C++ casts
+- const_cast< T >(expression);
+- dynamic_cast< T >(expression);
+- reinterpret< T >(expression);
+- static_cast< T >(expression);
+
+Each serves a distinct purpose:
+- `const_cast`: cast away constness. The only C++ cast that can do this.
+- `dynamic_cast`: Primarily for "safe downcasting" i.e. whether an
+object is of a particular type in an inheritance hierarchy. e.g. whether
+`shape` can be cast to `triangle`. Cannot be performed in old style cast and
+has significant runtime cost.
+- `reinterpret_cast`: intended for low-level casts that yield
+implementation-dependent (unportable) results. e.g. pointer to int. Should
+rarely be used outside of low level code.
+- `static_cast`: Used to force implicit conversions (e.g. non-const to
+const. int to double etc). It can also be used to perform the reverse
+of many such conversions (e.g. void pointers* to type pointers,
+pointer-to-base to pointer-to-derived). Just not const to non-const.
+
+New style casts are preferrable as they are easier to identify in code and
+their narrower usage provides more helpful usage errors.
+
+==Many programmers believe that casts do nothing but tell compilers to
+treat one type as another==. This is wrong. Type conversions of any kind
+can lead to code that is executed at runtime.
+
+```cpp
+int x, y;
+...
+double d = static_cast<double>(x) / y;
+```
+This code almost certainly generates code as the underlying representation
+of a double differs from an int on most architectures. Not too surprising
+but this may be a bit more unexpected:
+
+```cpp
+class Base {...};
+class Derived : public Base {...};
+Derived d;
+Base *pb = &d;
+```
+We're creating a base class pointer to a derived object, but sometimes
+the two pointer values will not be the same. When this happens, an offset
+is ==*applied at runtime*== to the Derived* pointer to get the correct Base*
+pointer value.
+
+The last example demonstrates that a single object might have more than
+one address (e.g. address when pointed by Base* and address when
+pointed by Derived*). This does not happen in C, Java or C#, but it does
+happen in C++. It happens all the time when multiple inheritance is in use.
+But it can also happen in single inheritance. ==This means that you should
+generally avoid making assumptions about how things are laid out in
+C++ and certainly not make casts based on such assumptions.==
+
+> [!info] Note  
+> An offset is 'sometimes' required. Compiler specific implementation
+> differs. Just because a cast based on assumed layout works on one
+> platform does not mean it will work on another.
+
+Casts make it easy to write code that looks right, but is in fact wrong.
+For example, often virtual member function implementations are required
+to call their base class counterparts first:
+```cpp
+class Window {
+public:
+    virtual void onResize() {...}
+    ...
+};
+
+class SpecialWindow: public Window {
+public:
+    virtual void onResize() {
+        static_cast<Window>(*this).onResize();
+        ...
+    }
+    ...
+};
+```
+In this code, it may appear to be casting `this`, the current object, into its
+base class and then calling `onResize()` on it.
+
+
+### **Item 28:** Avoid returning "handles" to object internals.  
+
+
+### **Item 29:** Strive for exception-safe code.  
+
+
+### **Item 30:** Understand the ins and outs of linlining.  
+
+
+### **Item 31:** Minimise compilation dependencies between files.  
+
 
 ## Ch6: Inheritance and Object-Oriented Design  
 
