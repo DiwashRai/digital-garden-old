@@ -1494,13 +1494,223 @@ public:
 };
 ```
 In this code, it may appear to be casting `this`, the current object, into its
-base class and then calling `onResize()` on it.
+base class and then calling `onResize()` on it. However, what it does is
+creates a new, ==temporary copy of the base class== part of `this`, calls
+`Window::onResize` on the copy of the base class part and continues with
+the function and performs the `SpecialWindow` specific actions on the
+current object.
+
+The object might now be in an invalid state where the base class
+modifications have not been made but the derived class parts have been.
+To handle this properly you should do the following:
+```cpp
+class SpecialWindow: public Window {
+public:
+    virtual void onResize() {
+        Window::onResize();
+        ...
+    }
+    ...
+};
+```
+
+If you are finding yourself wanting to cast, you could be approaching
+things in the wrong way.
+
+`dynamic_cast` is an extremely costly cast. One common implementation
+is partly based on string comparisons between class names. In an
+inheritance hierarchy of four levels, this would cost 4 calls to `strcmp`. Be
+wary of casts in general, but especially wary of dynamic_casts.
+
+The need for dynamic_cast usually arises when you want to perform
+derived class operations on what you think is a derived class, but what
+you have is a pointer-to-base.
+
+There are two possible solutions to avoid dynamic_casting for this reason:
+- Use containers that store pointers to derived class objects directly.
+- Use virtual functions in the base class that will allow you to do what
+you need.
+
+> [!abstract] Summary  
+> - Avoid casts whenever practical, especially dynamic_casts. Explore
+> cast-free alternatives if a design requires casting.
+> - If casting is necessary, hide it inside a function.
+> - Prefer C++ style casts to old-style casts. Easier to spot and
+> more specific about what they do.
 
 
 ### **Item 28:** Avoid returning "handles" to object internals.  
+Consider an implementation of a rectangle class that stores the upper-left
+corner and lower-right corner. Tok keep the `Rectangle` object small, the
+points that define it's extent aren't stored in the `Rectangle` itself, but
+an auxiliary struct that the rectangle points to.
+```cpp
+class Point {
+public:
+    Point(int x, int y);
+    ...
+    void setX(int newVal);
+    void setY(int newVal);
+};
 
+struct RectData {
+    Point ulhc;
+    Point lrhc;
+};
+
+class Rectangle {
+    ...
+private:
+    std::shared_ptr<RectData> pData;
+}
+```
+
+Because the clients of `Rectangle` need to be able to determine the extents
+of a rectangle, there are functions `upperLeft` and `lowerRight`. Because
+`Point` is a user-defined type and it is more efficient to return a reference,
+these functions return references.
+```cpp
+class Rectangle {
+public:
+    ...
+    Point& upperLeft() const { return pData->ulhc; }
+    Point& lowerRight() const { return pData->lrhc; }
+    ...
+};
+```
+The design will compile, but it's wrong. The functions are declared const
+so they are designed to offer clients a way to learn what the points of the
+rectangle are, not to change them. However, since references to internal
+data members are returned, they can now be changed.
+
+```cpp
+Point coord1(0, 0);
+point coord2(100, 100);
+
+const Rectangle rec(coord1, coord2); // rectangle 0,0 x 100,100
+
+rec.upperLeft().setX(50);  // now rec 50,0 x 100,100
+```
+
+Two lessons from this example:
+- ==A data member is only as encapsulated as the most accessible
+function returning reference to it==
+  - In this example, `ulhc` and `lrhc` are effectively public.
+- ==If a const member function returns a reference to data associated
+with an object that is stored outside the object itself, the called can now
+change that data.==
+
+The example involved references but the same would be true for pointers
+and iterators as they all act as *handlers*.
+
+We generally think of an object's internals as it's data members ,but 
+member functions not accessible to the general public are also part of
+an object's internals. This means that you should nver have a member
+function return a pointer to a less accessible member function.
+
+The rectable example can be simply solved by adding const to their return
+types:
+```cpp
+class Rectangle {
+public:
+    ...
+    const Point& upperLeft() const { return pData->ulhc; }
+    const Point& lowerRight() const { return pData->lrhc; }
+    ...
+};
+```
+The clients can now 'read' the points but not 'write' into them.
+However, `upperLeft` and `lowerRight` are still returning 'handles' to an
+object's internals and this can be problematic still. In particular, it can
+lead to 'dangling handles'. Consider:  
+```cpp
+class GUIObject{
+...
+};
+
+// returns a rectangle by value
+const Rectangle boundingBox(const GUIObject& obj);
+
+GUIObject *pgo;
+...
+// get a ptr to upper left point of bounding box
+const Point *pUpperLeft = &(boundingBox(*pgo).upperLeft());
+```
+Here the call to `boundingBox` returns a rectangle by value. `upperLeft` is
+then called on this rectangle and the pointer to this `Point` is assigned to
+`pUpperLeft`. Unfortunately, the temporary rectangle object will be
+destroyed. That will then also leave `pUpperLeft` pointing to a `Point` that
+no longer exists.
+
+> [!abstract] Summary  
+> - Avoid returning handles (references, pointers, or iterators) to
+> object internals. Doing so maximises encapsulation, helps const
+> member functions act const, and minimises the creation of dangling
+> handlers.
 
 ### **Item 29:** Strive for exception-safe code.  
+There are two requirements for exception safety:
+- **Leak no resources**
+- **Don't allow data structures to be corrupted**
+
+Consider a class for representing GUI menus with background images. The
+class is designed to be used in threaded environments so it has a mutex.
+```cpp
+class PrettyMenu {
+public:
+    ...
+    void changeBackground(std::istream& imgSrc);
+    ...
+private:
+    Mutex mutex;
+    Image* bgImage;
+    int imageChanges;
+}
+```
+
+Now here is a possible implementation of the `changeBackground` function:
+```cpp
+void PrettyMenu::changeBackground(std::istream& imgSrc)
+{
+    lock(&mutex);                //acquire mutex
+    delete bgImage;              //get rid of old bg
+    ++imageChanges;              //update image change count
+    bgImage = new Image(imgSrc);  //install new bg
+    unlock(&mutex);              //release mutex
+}
+```
+
+This function fulfils none of the requirements for exception safety. It leaks
+resources as if `new Image(imgSrc)` throws, the mutex is never unlocked.
+As for data structure corruption, if `new Image` throws, `bgImage` is now
+pointing to a deleted object and also `imageChanges` has been incremented
+when the new image has not actually been installed.
+
+*Addressing the resource leak*. To do this we just have to use objects to
+help us manage resources.
+```cpp
+void PrettyMenu::changeBackground(std::istream& imgSrc)
+{
+    Lock ml(&mutex);   // item 14. ensures release
+
+    delete bgImage;
+    ++imageChanges;
+    bgImage = new Image(imgSrc);
+}
+```
+
+> [!tip] info  
+> Another good thing about resource management classes is that they
+> usually make functions shorter.
+
+*Now for the data structure corruption.* We now have a choice. Exception
+safe functions offer ==one of three guarantees.==
+- **Basic guarantee.** If an exception is thrown, everything in the program
+remains in a valid state. No objects or data structures corruped and
+internal state is consistent. e.g. for `changeBackground` the original
+background is kept or a default background is used.
+- **Strong guarantee.** If an exception is thrown, the state of the program
+is left unchanged.
 
 
 ### **Item 30:** Understand the ins and outs of linlining.  
