@@ -1710,14 +1710,390 @@ remains in a valid state. No objects or data structures corruped and
 internal state is consistent. e.g. for `changeBackground` the original
 background is kept or a default background is used.
 - **Strong guarantee.** If an exception is thrown, the state of the program
-is left unchanged.
+is left unchanged. The functions are ==atomic==. If they succeed, they 
+succeed they succeed completely, and if they fail ,the program state is
+is as if it was never called at all. Functions offering the 'strong'
+guarantee are easier to work with as after they are called there is only
+two possible states: same as before or expected state after successful
+completion. With the 'basic' guarantee the function could leave the
+program in any valid state.
+- **The nothrow guarantee**. Never throw exceptions as these functions
+always do what they promise to. All operations on built-in types are
+nothrow. Functions with an empty exception specification *do not* imply
+that they are nothrow. All it says is that if the function does throw an
+exception, it is a serious error.
 
+Exception-safe code must offer one of the three guarantees from above.
+It is not exception-safe if it does not. The choice is only about which
+level of exception-safe code to offer as write exception-unsafe code
+will cause resource leaks and corrupt data structures.
+
+The general rule is to offer the strongest guarantee that is practical.
+Although nothrow guarantee is great, it is difficult to climb out of just the
+C part of C++ whilst guaranteeing it.
+
+*Back to the changeBackground example.* We can do two very simple
+things to almost provide the strong guarantee.
+```cpp
+class PrettyMenu {
+    ...
+    std::shared_ptr<Image> bgImage;
+    ...
+};
+void PrettyMenu::changeBackgroun(std::istream& imgSrc)
+{
+    Lock ml(&mutex);
+    bgImage.reset(new Image(imgSrc));
+    ++imageChanges;
+}
+```
+The two improvements are:
+- Using a shared_ptr to avoid resource leaks.
+- Reorder the statements so that `imageChanges` is only incremented until
+the image has actually been changed.
+
+The improvements make it 'almost' strong as it is possible that the
+read marker for input stream 'imgSrc' has been moved.
+
+There is a general design strategy that typically leads to the strong
+guarantee. ==Copy and swap==. Make a copy of the object you want to
+modify, make the necessary modifications to the copy. If an exception
+is thrown, the original is left unchanged. After all changes have been
+made, swap the modified object with the original in a non-throwing
+operation.
+
+This is usually implemented by putting all the per-object data into a
+separate implementation object, then giving the real object a pointer
+to its implementation object. This is called the "pimpl idiom".
+
+The ==copy-and-swap== strategy is an excellent way to make all-or-nothing
+changes to an object's state, but still does not guarantee that the overall
+function is strongly exception safe.
+
+```cpp
+void someFunc()
+{
+    ...    //make copy of local state
+    f1();
+    f2();
+    ...    //swap modified state into place
+}
+```
+
+If `f1` or `f2` are less than strongly safe, `someFunc` is almost certainly not
+strongly safe. But even if they are, `f1` could succeed and `f2` could fail.
+This means that the state is not the same as if `f1` and `f2` both ran all the
+way successfully. Such issues can prevent you from offering the strong
+guarantee.
+
+Another issue with 'copy and swap' is efficiency. The strategy requires
+creating a copy of each object to be modified which takes extra time and
+space.
+
+If you are unable to provide the strong guarantee because of limitations
+such as these, it is perfectly ok to only provide the weak guarantee. Just
+make an effort to provide the strong guarantee.
+
+> [!abstract] Summary  
+> - Exception-safe functions ==leak no resource== and ==do not allow
+> data structure corruption==. Even if exceptions are thrown; basic,
+> strong, or nothrow guarantees are provided.
+> - Strong guarantee can be provided via copy-and-swap.
+> - A function can usually offer a guarantee no stronger than the
+> function it itself calls.
 
 ### **Item 30:** Understand the ins and outs of linlining.  
+Inline functions are a great idea: look like functions, act like functions,
+but without the overhead of a real function call and without using macros.
+==What more could you ask for?==  
+They provide even more benefits! Compiler optimisations also work better
+as they are typically designed for long stretches of code that lack function
+calls.
 
+However, nothing in life is free. They increase the size of your object
+code. This could be a problem on machines with limited memory. Even
+with virtual memory, code bloat can lead to additional paging, a reduced
+instruction cache hit rate and the performance penalties these incur.
+
+On the other hand, if an inline function body is very short, the code
+generated for the function body may be smaller than the code for a
+function call. This can lead to *smaller* object code and a higher instruction
+cache hit rate.
+
+Bear in mind that `inline` is a 'request' not a command. The request can
+be explicit or implicit. The implicit method is to define the function in the
+class definition.
+```cpp
+class Person {
+public:
+    ...
+    int age() const { return theAge; }  //implicit inline req
+    ...
+private:
+    int theAge;
+};
+```
+
+The explicit way is to precede its definition with the `inline` keyword.
+```cpp
+inline const T& std::max(const T& a, const T& b)
+{ return a < b ? b : a; }
+```
+
+Just because inline functions and function templates are usually defined
+in header files does **not** mean that function templates must be inline. The
+reason that this happens is because inlining and function template
+instantiation both happens at compile time. If you inline all function
+templates mindlessly, you will bloat the code unnecessarily and incur all of
+the associated costs.
+
+*Inline is a request.* Most compilers refuse to inline functions that are too
+complicated (contain loops or are recursive) and all but the most trivial
+calls to virtual functions. After all virtual means 'figure out which
+function to call at runtime'. How you call the function also affects
+whether the function is inlined. Calling a function through a pointer will
+most likely not result in it being inlined.
+
+It is also important to carefully consider inlining as a library designer as it
+is impossible to provide binary upgrades to the client-visible inline
+functions in a library. This is because inline functions are compiled into
+the clients application. To change this the clients would have to recompile
+with the new provided inline function code. This is more onerous than
+dynamically linking a non inline function.
+
+This all culminates in the logical strategy that functions should generally
+not be declared inline. The 80-20 rule should be recalled and you should
+identify the 20% of your code that increases your code's performance
+and selectively apply inline.
+
+> [!abstract] Summary  
+> - Limit most inlining to small, frequently called functions. This
+> facilitate debugging, binary upgradability, minimises code bloat, and
+> maxmises chances of greater performance.
+> - Don't declare function templates inline just because they appear
+> in header files.
 
 ### **Item 31:** Minimise compilation dependencies between files.  
+C++ does not do a very good job of separating interfaces from
+implementations. You might make a small change to an implementation,
+just the private stuff and find your whole project recompiling.
 
+```cpp
+class Person {
+public:
+    ...
+    Person(const std::string& name, const Date& birthday,
+           const Address& addr);
+    std::string name() const;
+    std::string birthDate() const;
+    std::string address() const;
+    ...
+private:
+    std::string theName;  //implementation detail
+    Date theBirthDate;    //implementation detail
+    Address theAddress;   //implementation detail
+};
+```
+
+In this example, the `Person` class can't be compiled without access to
+definitions that the `Person` ==implementation== uses (string, Date, Address).
+Such definitions are typically provided using the `#include` directive.
+```cpp
+#include <string>
+#include "date.h"
+#include "address.h"
+```
+
+Unfortunately, this leads to compilation dependencies as changes to any
+of these files will require Person to also be recompiled. C++ requires the
+implementation details of a class in the class definition as compilers need
+to know how much memory to allocate for objects. This info cannot be
+found in forward declarations. ==This is not a problem in languages like
+Java== as in those languages compilers allocate only enough space for a
+pointer to an object.
+
+In C++ there are two ways to solve this problem:
+- Like Java, play the game of "hide the object implementation behind a
+pointer game" using the pimpl idiom.
+- Use ==interface classes==.
+
+*pimpl idion method*
+```cpp
+#include <string>
+#include <memory>
+
+class PersonImpl;
+class Date;
+class Address;
+
+class Person {
+    Person(const std::string& name, const Date& birthday,
+           const Address addr);
+    std::string name() const;
+    std::string birthDate() const;
+    std::string address() const;
+    ...
+private:
+    std::shared_ptr<PersonImpl> pImpl;//ptr to implementation
+};
+```
+
+With this design, clients of Person are divorced from the details of dates,
+addresses and persons. The implementations can be changed at will, but
+`Person` clients do not need to recompile. ==Furthermore, since the clients
+are unable to view the implementation, the are unlikely to write code that
+depends on those details==. Hence:
+- *Avoid using objects when object references will do*. You can define
+pointers and references to a type with only a declaration for a type.
+Defining objects of a type is what necessitates the definition of the class.
+- *Depend on class declarations instead of class definitions whenever
+you can*. You never need a class definition to declare a function using that
+class, not even if the function passes or returns the class type by value.
+```cpp
+class Date;   //class declaration
+
+Date today(); // fine even though it returns Date by value
+void clearAppointments(Date d); // also fine
+```
+Why declare functions that no one calls? It allows you to have a header
+file of function declarations. However, clients of your library will most
+likely not use every function. Now the burden of `#include`'ing the types
+the clients need is on the client. If you put all of the includes in the
+function declaration file, the clients would have artificial dependencies on
+files that they do not need as they would be including things that they
+don't need from the functions they don't call.
+- *Provide separate header files for declarations and definitions.* To
+facilitate adherance to these guidelines, header files should come in pairs:
+one for declarations, the other for definitions. These files need to be kept
+consistent. This means that library clients should `#include` a declaration
+file instead of forward declaring themselves. This means that library
+authors should provide both of these header files. The above example
+would look like so:
+```cpp
+#include "datefwd.h"
+
+Date today();
+void clearAppointments(Date d);
+```
+
+Classes like `Person` that use the 'pimpl idiom' are often called handle
+classes. Here's how `Person` might be implemented(aka the .cpp file):
+```cpp
+#include "Person.h"
+#include "PersonImpl.h"
+
+Person::Person(const std::string& name, const Date& birthday,
+               const Address& addr)
+:pImpl(new PersonImpl(name, birthday, addr))
+{}
+
+std::string Person::name() const
+{
+    return pImpl->name();
+}
+```
+
+Now lets consider the alternative. Interface classes. An interface class
+for `Person` might look like this:
+```cpp
+class Person {
+public:
+    virtual ~Person();
+
+    virtual std::string name() const = 0;
+    virtual std::string birthDate() const = 0;
+    virtual std::string address() const = 0;
+}
+```
+
+==Clients of this class must program in terms of Person pointers and
+references as it is impossible to instantiate classes containing pure virtual
+functions.== It is however, possible to instantiate classes *derived* from
+`Person`. Like handle classes, clients of the interface class do not have to
+recompile unless the interface is modified.
+
+Clients of interface classes need a way to create new objects. This is
+typically done using 'factory functions' that play the role of the
+constructor. They return pointers (preferably smart) to dynamically
+allocated objects that support the Interface classes interface. Such
+functions are often declared static inside the interface class:
+```cpp
+class Person {
+public:
+    ...
+    static std::shared_ptr<Person>
+        create(const std::string& name,
+               const Date& birthday,
+               const Address& addr);
+    ...
+};
+
+// to use the factory function
+std::string name;
+Date dob;
+Address addr;
+
+std::shared_ptr<Person> pp(Person::create(name, dob, addr));
+```
+
+At some point the Person interface class will need to be 'implemented'.
+That might look like this:
+```cpp
+class RealPerson: public Person {
+public:
+    RealPerson(const std::string& name, const Date& dob,
+               const Address& addr)
+    : theName(name), theBirthdate(dob), theAddress(addr)
+    {}
+    virtual ~RealPerson() {}
+    virtual std::string name() const;
+    virtual std::string birthDate() const;
+    virtual std::string address() const;
+private:
+    std::string theName;
+    Date theBirthDate;
+    Address theAddress;
+};
+
+...
+shared_ptr<Person> Person::create(const std::string& name,
+                                  const Date& birthday,
+                                  cosnt Address& addr)
+{
+    return std::shared_ptr<Person>(new RealPerson(name,dob
+                                                  addr));
+}
+```
+
+This demonstrates one of two most common mechanisms for implementing
+an Interface class: inherit its interface specification, then implement the
+function from the interface. A second way is using multiple inheritance
+(item 40).
+
+==So what are the costs for all this magic?== Some speed at runtime, plus
+some additional memory per object. For handle classes, you have to go
+through one layer of indirection to get to the object's data per access.
+The space required for this extra implementation pointer increases the
+memory required as well. Finally, since the object is dynamically
+allocated, there are associated costs with that.
+
+For interface classes, every function call is virtual, so you pay the cost
+of an indirect jump each time you make a function call. All objects derived
+from an interface class also requires a virtual table pointer.
+
+Finally, for both, they don't really benefit from `inline` functions.
+
+Do not dismiss ==handle classes== and ==interface classes== due to these costs
+though. Use them evolutionarily. Use them during development and then
+replace with concrete classes for production use if you can prove the
+speed/size benefit outweighs the coupling.
+
+> [!abstract] Summary  
+> - Main idea to reduce compilation dependencies is to rely on
+> declarations as much as possible. The two approaches are =='handle
+> classes'== and =='interface classes'==.
+> - Library header files should exist in full and declaration-only forms
+> even if templates are involved.
 
 ## Ch6: Inheritance and Object-Oriented Design  
 
