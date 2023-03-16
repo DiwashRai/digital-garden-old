@@ -2097,6 +2097,382 @@ speed/size benefit outweighs the coupling.
 
 ## Ch6: Inheritance and Object-Oriented Design  
 
+### **Item 32:** Make sure public inheritance models "is-a."  
+The most important rule with OOP in C++ is that *public inheritance means
+"is-a"*. If you write that class D(derived) publicly inherits from class
+B(base), you are telling C++ compilers that every object of type D is also
+an object of type B. Anywhere an object of type B can be used, you can
+also use type D, but not vice versa.
+```cpp
+class Person {...};
+class Student: public Person {...};
+
+void eat(const Person& p);
+void study(const Student& s);
+
+Person p;
+Student s;
+
+eat(p);  //fine - p is a person
+eat(s);  //fine - s is a student. student is-a person
+
+study(s);//fine
+study(p);//error - p is not a student. 
+```
+
+This is true only for *public* inheritance. Private inheritance means
+something different. Who knows what protected inheritance means.
+
+However, human intuition can be misleading. If we say penguins are birds
+and birds can fly, we could represent it like this:
+```cpp
+class Bird {
+public:
+    virtual void fly();      //birds can fly
+    ...
+};
+class Penguin: public Bird { // Penguins are birds
+    ...
+};
+```
+
+Now, we are in trouble because this hierarchy is claiming that penguins
+can fly. We are victims of an imprecise language called english. When we
+say birds can fly, we don't mean *all* birds can fly. There can be non flying
+birds. Now that we are clear about this, we could represent it like so:
+```cpp
+class Bird {
+public:
+    ...                      // no fly function
+};
+class FlyingBird {
+public:
+    virtual void fly();
+    ...
+};
+class Penguin: public Bird { // Penguins are birds
+    ...
+};
+```
+This is now more faithful to reality. However, if your application does not
+deal with flying, the original two class hierarchy may be sufficient. It
+depends on what the system is expected to do.
+
+There is another school of thought on how to handle the "penguins are
+birds but they can't fly" issue. The approach is to redefine the fly
+function for penguins so that it generates a *runtime* error.  
+```cpp
+void error(const std::string& msg); //defined elsewhere
+
+class Penguin: public Bird {
+public:
+    virtual void fly() { error("Penguins don't fly!");}
+    ...
+};
+```
+It is important to recognise that this does *NOT* say "penguins can't fly". It
+actually says "Penguins can fly, but it's an error when they actually try
+to do so". The main way to detect this is that the error is actually only
+detected at *runtime*. The way to correctly, definitively say that penguins
+can't fly is to not implement the fly function for penguins so that now the
+compiler will detect the error at *compile* time.
+
+Lets consider another example. Should square inherit from rectangle? You
+might be tempted to think so. But you might run into this issue:
+```cpp
+class Rectangle {
+public:
+    virtual void setHeight(int newHeight);
+    virtual void setWidth(int newWidth);
+    virtual int height() const;
+    virtual int width() const;
+    ...
+};
+void makeBigger(Rectangle& r)
+{
+    int oldHeight = r.height();
+    r.setWidth(r.width() + 10);
+    assert(r.height() == oldHeight); //ensure height unchanged
+}
+
+class Square: public Rectangle {...};
+Square s;
+...
+assert(s.width() == s.height());  //true for squares. surely
+makeBigger(s); // is a rectangle by inheritance so can call it
+assert(s.width() == s.height());  //true for squares. surely
+```
+It is clear that the second assertion on the square should remain true as
+a square by definition has equal height and width. However, the call to
+`makeBigger()` has changed the width but not height. The fundamental
+issue here is that something applicable for rectangles is not applicable for
+squares. This property is: ==height can be changed independently of width==.
+But public inheritance asserts that everything that applies to the base
+applies to the derived class too. 
+
+> [!abstract] Summary  
+> Public inheritance means "is-a". Everything that applies to a base
+> must also apply to a derived class because a derived class is-a base
+> class.
+
+### **Item 33:** Avoid hiding inherited names.  
+```cpp
+int x;
+void someFunc()
+{
+    double x;
+    std::cin >> x;
+}
+```
+From the above code it is easy to recognise that global variable x is hidden
+by the `x` in the inner scope. Inheritance behaves similarly as if the scope
+of the derived class is inside a base class.
+
+```cpp
+class Base {
+private:
+    int x;
+public:
+    virtual void mf1() = 0;
+    virtual void mf1(int);
+
+    virtual void mf2();
+
+    mf3();
+    void mf3(double);
+    ...
+};
+
+class Derived: public Base {
+public:
+    virtual void mf1();
+    void mf3();
+    void mf4();
+};
+```
+In this example, `mf1` and `mf3` hide the base class version. From the
+perspective of *name lookup*, Base::mf1 and Base::mf2 are no longer
+inherited at all.
+
+```cpp
+Derived d;
+int x;
+...
+d.mf1(); //fine. calls Derived::mf1
+d.mf1(x) //error. Derived::mf1 hides Base::mf1
+d.mf2(); //fine. calls Derived::mf2
+d.mf3(); //fine. calls Derived::mf3
+d.mf3(x);//error. Derived::mf3 hides Base::mf3
+```
+
+The surprising behaviour is that the hiding also affects functions in the
+base class that take different parameters. The rationale is that it prevents
+accidentally inheriting overlods from distant base classes when you create
+a new derived class in a library or application framework.
+
+Unfortunately, you do want to inherit the overloads when using public
+inheritance. You don't wan to violate the *"is-a"* relationship. You can
+override this behaviour with `using declarations`.
+
+```cpp
+class Derived: public Base {
+public:
+    using Base::mf1; //make things in Base called mf1 and
+    using Base::mf1; //mf1 visible in Derived's scope
+
+    virtual void mf1();
+    void mf3();
+    void mf4();
+};
+Derived d;
+int x;
+...
+d.mf1(); //fine. calls Derived::mf1
+d.mf1(x) //now ok. Calls Base::mf1
+d.mf2(); //fine. calls Derived::mf2
+d.mf3(); //fine. calls Derived::mf3
+d.mf3(x);//now ok. Calls Base::mf3
+```
+
+In public inheritance you always want to inherit all the functions from the
+Base class. However, with private inheritance, you may not want to
+inherit all the functions. Lets say Derived privately inherits from Base, and
+it only wants to inherit the `mf1` that takes on parameters. You can't use
+`using` to do this. For this you have to use a ==forwarding function==.
+
+```cpp
+class Base {
+public:
+    virtual void mf1() = 0;
+    virtual void mf1(int);
+    ...
+};
+class Derived: private Base {
+public:
+    virtual void mf1() { Base::mf1(); }
+    ...
+};
+...
+Derived d;
+int x;
+d.mf1();  //works as expected
+d.mf1(x); //hidden as expected
+```
+
+> [!abstract] Summary  
+> - Names in derived classes hide names in base classes. Under pubilc
+> inheritance, this is never desirable.
+> - To make hidden names visible again, employ using declarations or
+> forwarding functions.
+
+
+### **Item 34:** Differentiate between inheritance of interface and inheritance of implementation.  
+Public inheritance is composed of two separable parts: inheritance of
+function interfaces and inheritance of function implementations. This
+corresponds exactly to the difference between function declarations
+and function definitions.
+
+As a class designer you may want to (1) allow a derived class to only
+inherit the interface of a member function, (2) allow a derived class to
+inherit a function's interface and implementation, but with the option to
+override the inherited implementation or (3) allow a derived class to
+inherit interface and implementation without allowing it to be overriden.
+
+**1)** Interface only - AKA pure virtual functions
+```cpp
+class Shape {
+public:
+    virtual void draw() const = 0;
+    ...
+};
+```
+Two most salient features of pure virtual functions:  
+- Must be redeclared by conrete class that inherits them.
+- Typically have no definition in abstract classes.
+These two imply that the whole point of pure virtual functions is to have a
+derived class inherit the *interface only*.
+
+In the shape example, we have no idea how a shape will be drawn. Just
+that the designer of a concrete shape derived class has to make provide
+an implementation.
+
+**2)** Interface + optional default implementation - AKA virtual functions
+The big risk with virtual functions is that a new derived class is added into
+the inheritance hierarchy, *BUT* this new derived class differs from its
+siblings and does *NOT* want the default implementation of the virtual
+function. If the programmers forget to implement the custom overriden
+version for this new derived class, then we have issues.
+
+What we would like to do is offer a default implementation but require it to
+be explicitly asked for instead of being given it by default.  
+There are two ways to solve this. The first:
+```cpp
+class Airplane {
+public:
+    virtual void fly(const Airport& destination) = 0;
+    ...
+protected:
+    void defaultFly(const Airport& destination);
+};
+
+void Airplane::defaultFly(const Airport& destination)
+{
+    // default code to fly to desination airport
+    ...
+}
+```
+The key here is to disconnect the interface from the default
+implementation. The fly virtual function has been changed into a pure
+virtual function which has to be implemented but the implementation can
+now just use the `defaultFly` function provided.
+
+Now any new derived classes will have to implement `fly` and will not use
+the `defaultFly` function accidentally.
+
+An objection to this method of solving the problem is the pollution of the
+namespace. You can solve this with something very similar:
+```cpp
+class Airplane {
+public:
+    virtual void fly(const Airport& destination) = 0;
+    ...
+};
+
+void Airplane::fly(const Airport& destination)
+{
+    // default code to fly to destination
+    ...
+}
+
+class ModelA: public Airplane { // uses default  fly
+public:
+    virutal void fly(const Airport& destination)
+    {Airplane::fly(destination);}
+    ...
+};
+
+class ModelB: public Airplane {
+public:
+    virutal void fly(const Airport& destination);
+    ...
+};
+
+void ModelB::fly(const Airport& destination)
+{
+    // code for ModelB plane to fly to destination
+}
+```
+The main thing you lose with this method is to have different protection
+levels. The code that used to be in `defaultFly` is now public.
+
+**3)** Interface + mandatory implementation
+```cpp
+class Shape {
+public:
+    int objectID() const;
+    ...
+}
+```
+Nothing fancy in terms of implementation. But you should consider the
+implication of a mandatory implementation. It's basically saying "Every
+shape object has a funtion that returns it's ID, and no derived class can
+change the implementation". It is an ==invariant over specialisation==.
+
+**Common mistakes**
+- Making everything non-virtual
+    - Might happen due to concerns over performance. Just remember the 80-20 rule.
+- Declaring all member functions virtual
+    - Can be sign of a class designer to make a firm stance on what functions really are invariants.
+
+> [!abstract] Summary  
+> - Inheriting interfaces is different from inheriting implementations.
+> Under public inheritance, derived classes always inherit base class
+> interfaces.
+> - Pure virtual functions specify inheritance of interface only.
+> - Simple (impure) virtual functions specify inheritance of interface
+> and inheritance of a default implementation.
+> - Non-virtual functions specify inheritanc of interface and a
+> mandatory implementation.
+
+
+### **Item 35:** Consider alternatives to virtual functions.  
+
+
+### **Item 36:** Never redefine an inherited non-virtual function.  
+
+
+### **Item 37:** Never redifine a function's inherited default parameter value.  
+
+
+### **Item 38:** Model "has-a" or "is-implemented-in-terms-of" throw composition.  
+
+
+### **Item 39:** Use private inheritance judiciously.  
+
+
+### **Item 40:** Use multiple inheritance judiciously.  
+
+
 ## Ch7: Templates and generic programming  
 
 ## Ch8: Customising `new` and `delete`  
