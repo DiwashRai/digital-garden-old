@@ -2338,7 +2338,7 @@ inherit a function's interface and implementation, but with the option to
 override the inherited implementation or (3) allow a derived class to
 inherit interface and implementation without allowing it to be overriden.
 
-**1)** Interface only - AKA pure virtual functions
+#### **1)** Interface only - AKA pure virtual functions
 ```cpp
 class Shape {
 public:
@@ -2356,7 +2356,7 @@ In the shape example, we have no idea how a shape will be drawn. Just
 that the designer of a concrete shape derived class has to make provide
 an implementation.
 
-**2)** Interface + optional default implementation - AKA virtual functions
+#### **2)** Interface + optional default implementation - AKA virtual functions
 The big risk with virtual functions is that a new derived class is added into
 the inheritance hierarchy, *BUT* this new derived class differs from its
 siblings and does *NOT* want the default implementation of the virtual
@@ -2425,7 +2425,7 @@ void ModelB::fly(const Airport& destination)
 The main thing you lose with this method is to have different protection
 levels. The code that used to be in `defaultFly` is now public.
 
-**3)** Interface + mandatory implementation
+#### **3)** Interface + mandatory implementation
 ```cpp
 class Shape {
 public:
@@ -2456,18 +2456,308 @@ change the implementation". It is an ==invariant over specialisation==.
 
 
 ### **Item 35:** Consider alternatives to virtual functions.  
+Consider a video game and a hierarchy for characters in the game. You
+offer a member function `healthValue`, that returns an integer indicating
+how healthy the character is. However, different characters may calculate
+their health differently. Declaring `healthValue` virtual seems obvious:
+```cpp
+class GameCharacter {
+public:
+    virtual int healthValue() const;
+    ...
+};
+```
+The problem is in fact that this design does seem so obvious. However,
+there are alternative ways to approach this problem and we should bear
+this in mind and consider them.
 
+#### The Template Method Pattern via the `Non-Virtual Interface Idiom`  
+One school of thought is that virtual functions should always be private.
+To adhere to this rule and solve the healthvalue problem you could retain
+`healthValue` but change it to public. Then a different private virtual
+function does the actual calculation and is called by the public function:
+```cpp
+class GameCharacter {
+public:
+    int healValue() const
+    {
+        ...  //do "before" stuff. aka setup
+        int retVal = doHealthValue(); //do real work
+        ...  //do "after" stuff. aka cleanup(?)
+        return retVal;
+    }
+    ...
+private:
+    virtual int doHealthValue() const
+    {
+        ... //default algorithm for health calc
+    }
+};
+```
+This design is calle dthe non-virtual interface (NVI) idiom. It is a
+minifestation of a more general design pattern called Template Method
+(unrelated to C++ templates).
+
+in the NVI idiom, the non-virtual method becomes the 'wrapper' used to
+call the virtual method that does the work. This means that the wrapper
+function can ensure that the context is setup before the work is done and
+then cleaned up after (e.g. Locking and unlocking a mutex).
+
+#### The Strategy pattern via Function Pointers
+The NVI idiom is an interesting alternative to public virtual functions, but
+ultimately it's little more than window dressing. After all, the real work
+is still being done with virtual functions. A more dramatic design would be
+saying that calculating a character's health is independent of the
+character's type. For example we could require that each character's
+constructor be passed a pointer to a health calculation function.
+```cpp
+class GameCharacter;  // forward declaration
+
+//function for default health calculation algo
+int defaultHealthCalc(const GameCharacter& gc);
+
+class GameCharacter {
+public:
+    typedef int (*HealthCalcFunc)(const GameCharacter&);
+    explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc)
+    : healthFunc(hcf)
+    {}
+    int healthValue() const
+    { return healthFunct(*this); }
+    ...
+private:
+    HealthCalcFunc healthFunc;
+};
+```
+
+This approach is a simple application of another common design pattern -
+==strategy==. Compared to approaches based on virutal functions, it offers
+some interesting flexibility:
+- Different instances of the same character type can have different health
+calculation functions.
+- Health calculation functions can be changed at runtime.
+
+However, on the other hand, it means that the health calculation function
+no longer has special access to the internal parts of `Character`. This
+is something that you have to bear in mind for all functions outside of the
+class. The only way to resolve this is to weaken the encapsulation of the
+class i.e. declare non-member function a friend, offer public accessor
+functions that would otherwise not be necessary.
+
+#### The Strategy Pattern via std::function
+Once you get accustomed to templates though, the function pointer
+approach can seem limiting and rigid. Why can't we use something that
+*acts* like a function such as a function object? Why can't it be a member
+function? Why must it return an int instead of a type convertible to an int.
+
+These constraints vanish when we use std::function instead of a function
+pointer. Here is the same design but with std::function.
+```cpp
+class GameCharacter;
+int defaultHealthCalc(const GameCharacter& gc);
+
+class GameCharacter {
+public:
+    typedef std::function<int (const GameCharacter&)> HealthCalcFunc;
+
+    explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc)
+    :healthFunc(hcf)
+    {}
+    int healthValue() const { return healthFunc(*this);}
+    ...
+private:
+    HealthCalcFunc healthFunc;
+};
+```
+
+Lets take a closer look at what the typedef was for:  
+`std::function<int (const GameCharacter&)>`  
+The target signature is "function taking a const GameCharacter& and
+returning an int". An object of this type can hold any callable entity
+compatitble with that signature. Compatible means that
+`const GameCharacter&` can be converted to the type of the entity's
+parameter and the entity's return type can be converted to int.
+
+This is similar to using function pointers but with a staggering amount
+more flexibility.
+
+#### The "Classic" Stretegy Pattern
+For a more design pattern friendly approach instead of a 'C++ coolness'
+approach you can have `GameCharacter` be the base class for `EvilBadGuy`
+and `EyeCandyCharacter`. `HealthCalcFunc` would then be the root of
+another hierarchy with derived classes `SlowHealthLoser` and
+`FastHealthLoser`. Each `GameCharacter` would contain a pointer to an
+object from the `HealthCalcFunc` hierarachy.
+```cpp
+class GameCharacter;
+
+class HealthCalcFunc {
+public:
+    ...
+    virtual int calc(const GameCharacter& gc) const
+    {...}
+    ...
+};
+
+HealthCalcFunc defaultHealthCalc;
+
+class GameCharacter {
+public:
+    explicit GameCharacter(HealthCalcFunc* phcf = &defaulthealthCalc)
+    : pHealthCalc(phcf)
+    {}
+    int healthValue() const
+    { return pHealthCalc->calc(*this);}
+    ...
+private:
+    HealthCalcFunc *pHealthCalc;
+};
+
+```
+
+This approach has the appeal of being quickly recognisable to people
+familiar with the 'standard' strategy pattern implementation. It also has
+the benefit of allowing the existing health calculation to be tweaked with
+the use of derived classes.
+
+> [!abstract] Summary  
+> Consider alternatives to virtual functions when searching for a design
+> to solve your problem. Alternatives include:
+> - **Non-virutal Interface Idiom**. A form of the Template Method design
+> - Replace virtual functions with **function pointer data members**
+> - Replace virtual functions with **std::function data members**
+> - Replace virtual functions in one hierarchy with **virtual functions from a different hierarchy**.
+> This is the conventional approach to the strategy pattern.
 
 ### **Item 36:** Never redefine an inherited non-virtual function.  
+Lets say you have a base class B and a derived class D that inherits from
+B.
+```cpp
+class B {
+public:
+    void mf();
+    ...
+};
+class D: public B{...}
+```
+Now if you were to call mf though a pointer to object D...
+```cpp
+D x;
+B* pB = &x;
+D* pD = &x;
+
+pB->mf();  // surely these function calls
+pD->mf():  // do the same thing
+```
+You would expect the same result. However, this may not be the case if
+class D has redefined `mf()`. This is because ==non-virtual functions are statically bound==.
+Virtual functions. on the other hand are dynamically bound, so you would
+get the expected result. That's the pragmatic argument.
+
+Now for a more theoretical argument. If public inheritance means an "is-a"
+relationship and declaring a non virtual function establishes an invariant
+over specialisation for that class, then:
+- Everything that applies to B objects also apply to D objects
+- Classes derived from B must inherit both the interface and
+implementation of `mf()` because mf is non-virtual
+
+Then what is D do doing by redefining `mf()`? It makes no sense. It means
+that every D is a B is no longer true. It would mean that D should not
+inherit from B. If D does really have to inherit from B, then that also
+means that the invariant over specialisation is not true. This means that
+`mf()` should be virtual.
+
+Basically, just don't do it. It's pragmatically bad and theoretically
+nonsensical.
+
+> [!abstract] Summary  
+> Never redefine an inherited non-virtual function
 
 
 ### **Item 37:** Never redifine a function's inherited default parameter value.  
+The previous item rules out redefining non virtual functions so this item
+address redefining the *default parameter value* of a virtual function.
 
+==Virtual functions are dynamically bound, but default parameter values are statically bound.==
+
+Essentially this means that if you redefine a default parameter value in a
+derived function, it will still use the default parameter value from the base
+class. So don't do it.
+
+If you want to supply a default parameter value for both the base and
+derived class though, without redefining the same colour in both, resulting
+in code duplication and dependencies, you can use NVI.
+
+> [!abstract] Summary  
+> Never redefine an inherited default parameter value because default
+> parameter values are statically bound and virtual functions are
+> dynamically bound.
 
 ### **Item 38:** Model "has-a" or "is-implemented-in-terms-of" throw composition.  
+*Composition* is the relationship that arises when objects of one type
+contain objects of another type. For example:
+```cpp
+class Address {...};
+class PhoneNumber {...};
+class Person {
+public:
+    ...
+private:
+    std::string name;         //composed object
+    Address;                  // ditto
+    PhoneNumber voiceNumber;  // ditto
+    PhoneNumber faxNumber;    // ditto
+};
+```
 
+Item 32 explains that public inheritance means "is-a". Composition also
+has a meaning. Composition means "has-a" or
+"is-implemented-in-terms-of". That's because some objects in your code
+correspond to things in the world you are modeling e.g. people, vehicles,
+video frames etc. Such objects are part of the *application domain*. Other
+objects are purely implementation artefacts e.g. buffers, mutexes, search
+trees etc. Application domain -> "has-a". Implementation domain ->
+"is-implemented-in-terms-of".
+
+The "has-a" relationship is relatively simple and people do not struggle
+with it. More problematic is the "is-implemented-in-terms-of"
+relationship. Lets say you need a hash set. The STL has such a data
+structure. However, the tradeoff made in the STL implementation is
+to sacrifice space for speed and requires three pointers per element. So
+you decided to implement as set yourself. You decide to implement it as
+a linked list and not a search tree. To do this you decide to use the STL
+implementation of linked list. You may choose to do the following:
+```cpp
+template<typename T>
+class Set: public std::list<T> { ... };
+```
+
+This would be wrong. This implies that what's true for list is also true
+for your set. It models an "is-a" relationship. what you should do is:
+```cpp
+template<typename T>
+class Set {
+public:
+    bool member(const T& item) const;
+    void insert(const T& item);
+    void remove(const T& item);
+    std::size_t size() const;
+private:
+    std::list<T> rep;     // representation of set data
+};
+```
+
+Finally the relationship has been established correctly. Set is "implemented
+in terms of" a linked list.
+
+> [!abstract] Summary  
+> - Composition has meanings completely different from that of public
+> inheritance.
+> - In the application domain, composition means "has-a"
+> - In the implementation domain, composition means "is-implemented-in-terms-of"
 
 ### **Item 39:** Use private inheritance judiciously.  
+
 
 
 ### **Item 40:** Use multiple inheritance judiciously.  
