@@ -3020,6 +3020,212 @@ be judicious with the use of MI.
 
 ## Ch7: Templates and generic programming  
 
+### **Item 41:** Understand implicit interfaces and compile time polymorphism
+The world of OOP revolved around *explicit* interfaces and *runtime*
+polymorphism. For example:
+```cpp
+class Widget {
+public:
+    Widget();
+    virtual ~Widget();
+    virtual std::size_t size() const;
+    virtual void normalize();
+    void swap(Widget& other);
+    ...
+};
+// and also this function:
+void doProcessing(Widget& w)
+{
+    if (w.size() > 10 && w != someNastyWidget) {
+        Widget temp(w);
+        temp.normalize();
+        temp.swap(w);
+    }
+}
+```
+
+We can say this about `w` in `doProcessing`:
+- Because `w` is declared to be of type Widget, `w` must support the Widget
+interface in the source code to see exactly what it looks like. This is an
+*explicit interface* - one explicitly visible in the source code.
+- Because `w` is a reference and some of Widget's member functions are
+virtual, `w`'s calls to those functions will exhibit *runtime polymorphism*.
+
+Templates and generic programming bring *compile-time polymorphism* to
+the fore. Look what happens when we change `doProcessing` into a
+function template:
+```cpp
+template<typename T>
+void doProcessing(T& w)
+{
+    if (w.size() > 10 && w != someNastWidget) {
+        t temp(w);
+        temp.normalise();
+        temp.swap(w);
+    }
+}
+```
+Now what can we say about `w` in doProcessing?
+- The interface that `w` must support is determined by the operations
+performed on `w` in the template. In this example `w`'s type must support the
+size, normalise, and swap member functions; copy construction;
+comparison for inequality. ==The set of expressions that must be valid in order for the template to compile is the *implicit interface* that T must support.
+- The calls to functions involving `w` such as `operator>` and `operator!=`
+may involve instantiating templates. Such instantiation takes place during
+compilation. Because instantiating function templates with different
+template parameters leads to different functions being called, this is
+known as ==compile-time polymorphism.==
+
+An implicit interface is quite different to explicit interface. Consider the
+start of doProcessing:
+```cpp
+template<typename T>
+void doProcessing(T& w)
+{
+    if (w.size() > 10 && w! someNastWidget) { //this exprssn
+    ...
+```
+The implicit interface for `w` appears to have these constraints:
+- must offer a member function names size that returns an integral value
+- must support `operator!=` that compares two objects of type T
+
+Size need not return an integral type. All it needs is an object of some
+type X such that there is an `operator>` that can be called with an object X
+and an int. The `oeprator>` need not even take a parameter of type X,
+because it could take a parameter of type Y as long as there is available
+an implicit conversion between type X to object Y.
+
+Similarly, there is no requirement that T support `operator!=`, because it
+would be fine to  take one object of type X and one object of type Y, as
+long as T can be converted to X and someNastyWidget's type can be
+converted to Y.
+
+This can seem confusing but it does not have to be. Implicit interfaces
+are ==made up of a set of valid expressions.== It's easier to think about the
+expression as a whole.  
+`if (w.size() > 10 && w != someNastyWidget)...`  
+An expression in an if statement must be a boolean expression. This
+means that as long as "w.size() > 10 && w != someNastyWidget" yields
+something compatible with a bool, the constraint will be met.
+
+The implicit interfaces imposed on a template's parameters are just as
+real as explicit interfaces imposed on a class's objects and both are
+checked during compilation.
+
+> [!abstract] Summary  
+> - Both classes and templates support interfaces and polymorphism
+> - For classes, interfaces are explicit and centered on function
+> signatures. Polymorphism occurs at runtime through virtual functions.
+> - For template parameters, interfaces are implicit and based on valid
+> expressions. Polymorphism occurs during compilation through template
+> instantiation and function overloading resolution.
+
+
+### **Item 42:** Understand the two meanings of typename.
+In a template declaration, class and typename is used interchangeably.
+```cpp
+// both mean the same
+template<class T> class Widget;
+template<typename T> class Widget;
+```
+However, class and typename don't always have the same meaning. The
+meaning of class should already known. But we also have to know when
+to use typename.
+
+Few definitions:
+- *dependent names* - Names in a template that are dependent on a
+template parameter
+- *nested dependent name* - When a dependent name is nested inside a
+class
+
+```cpp
+template<typename C>
+void print2nd(const C& container)
+{
+    C::const_iterator * x;
+}
+```
+The 'const_iterator' name is nested inside the class C, which is a
+template parameter. Thus it is a nested dependent name. In fact it is
+actually a 'nested dependent typename' i.e. nested dependent name that
+refers to a type.
+
+However, nested dependent names can lead to parsing difficulties.
+In theory, the `C::const_iterator * x;` could be saying "multiply a global
+variable x with a static member in C called const_iterator". Until C is
+known, we can't tell if it is a type or not. C++ has a rule to resolve
+this ambiguity. ==It assumes that nested dependent names are not types==
+unless told otherwise.
+
+So what code that involves this would look like to be valid would be:
+```cpp
+template<typename C>
+void print2nd(const C& container)
+{
+    if (container.size() >= 2) {
+        typename C::const_iterator iter(container.begin());
+        ...
+```
+Putting typename in front of C::const_iterator lets the compiler know
+it is a type. This needs to be done every time you refer to a nested
+dependent name in a template with one exception.
+
+The exception is that typename must not precede nested dependent type
+names in a list of base classes or as a base class identifier in a member
+initialisation list. For example:
+```cpp
+template<typename T>
+class Derived: public Base<T>::Nested { //typname not allowed
+public:
+    explicit Derived(int x)
+    : Base<T>::Nested(x) //typename not allowed
+    {
+        typename Base<T>::Nested temp; // typename required
+        ...
+    }
+};
+```
+
+Lets look at another example and how you might make it less tedious
+to type out typename followed by a long verbose type.
+```cpp
+template<typename IterT>
+void workWithIterator(IterT iter)
+{
+    typedef typename std::iterator_traits<IterT>::value_type value_type;
+    value_type temp(*iter);
+    ...
+}
+```
+
+The `typedef typename` juxtaposition may be jarring initially but you'll get
+used to using it and seeing it as the alternative is to type it all out in full
+every time.
+
+> [!abstract] Summary  
+> - When declaring template parameters, `class` and `typename` are
+> interchangeable.
+> - Use `typename` to identify nested dependent type names, except in
+> base class lists or as a base class identifier in a member
+> initialisation list.
+
+
+### **Item 43:** Know how to access names in templatised base classes.
+
+
+### **Item 44:** Factor parameter-independent code out of templates
+
+
+### **Item 45:** Use member function templates to accept "all compatible types."
+
+
+### **Item 46:** Define non-member functions inside templates when type conversions are desired
+
+### **Item 47:** Use traits classes for information about types.
+
+
+### **Item 48:** Be aware of template metaprogramming.
+
 ## Ch8: Customising `new` and `delete`  
 
 ## Ch9: Miscellany  
