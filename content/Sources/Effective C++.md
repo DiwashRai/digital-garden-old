@@ -2757,11 +2757,266 @@ in terms of" a linked list.
 > - In the implementation domain, composition means "is-implemented-in-terms-of"
 
 ### **Item 39:** Use private inheritance judiciously.  
+Lets repeast the 'A Person can eat and a Student can study' example from
+the public inheritance section, but with private inheritance.
+```cpp
+class Person {...};
+class Student: private Person {...};  //private inheritance
+void eat(const Person& p);            // any person can eat
+void study(const Student& s);         // only students study
+Person p;
+Student s;
+eat(p);   //fine, p is a person
+eat(s);   //error! a Student isn't a person
+```
 
+As you can see compilers will generally *NOT* convert a derived class into
+the base class with private inheritance. This seems to indicate that it is
+*NOT* an "is-a" relationship. The other thing that happens is that members
+inherited from a private base class will all be converted to private
+members of the derived base class even if they are public or protected.
 
+So what is the meaning? Private inheritance means
+"is-implemented-in-terms-of". If you make class D privately inherit from
+class B, you are doing so to take advantage of some features in B, not
+because there's any conceptual link between them. If we think of it in
+a way similar to item 34, private inheritance means to *only* inherit the
+implementation and not the interface.
+
+The catch is that this 'meaning' is the exact same as item 38 -
+composition. So when should you use one or the other?  
+==Use composition whenever you can, and use private inheritance when you must.==
+And when must you? Primarily when protected members and/or virtual
+functions enter the picutre.
+
+Lets consider a widget class that runs overtime. We want to track how
+often member functions are being called in regular time intervals. We
+might reuse a Timer class that looks like this:
+```cpp
+class Timer {
+public:
+    explicit Timer(int tickFrequency);
+    virtual void onTick() const;  //auto called for each tick
+    ...
+};
+```
+
+This class is perfect as we can redefine the virtual function so that it
+examines the state of the `Widget`. In order to redefine a virtual function
+though we need to inherit from Timer. However, public inheritance is
+not suitable as clients would then be able to call onTick which we do not
+want. Therefore we inherit privately:
+```cpp
+class Widget: private Timer {
+private:
+    class WidgetTimer: public Timer {
+    public:
+        virtual void onTick() const;
+        ...
+    };
+    WidgetTimer timer;
+    ...
+};
+```
+
+This is a nice design but we need to remember that this can still be done
+with composition. It would be a bit more complicated though. We would
+have to declare a private nested class inside Widget that would publicly
+inherit from Timer, redefine `onTick()` in there and put an object of that
+type into Widget.
+```cpp
+class Widget {
+private:
+    class WidgetTimer: public Timer {
+    public:
+        virtual void onTick() const;
+        ...
+    };
+    WidgetTimer timer;
+    ...
+};
+```
+
+Showing this design is primarily a reminder that there are many ways to do
+the same thing and they should be considered. However, there are two
+rearsons why public inheritance + composition might be preferrable over
+private inheritance.
+- You might want to design Widget to allow for derived classes but
+prevent derived classes from redefining `onTick`. Private inheritance would
+still allow it as you can still redefine functions that you can't call. If you
+want to replicate Java/C# ability to prevent derived classes from
+redefining virtual functions this is a way to approximate that behaviour.
+- You might want to minimise Widget's compilation dependencies. If
+Widget inherits from Timer, Timer's definition must be available when
+Widget is compiled so the file defining Widget probably has to
+`#include "Timer.h"`. On the other hand, if WidgetTimer is moved out of
+Widget and Widget contains only a pointer to a WidgetTimer, Widget can
+get by with a simple declaration for `WidgetTimer`.
+
+There is an edge case that private inheritance might be useful for involving
+space optimisation. It applies when dealing with classes that have no data
+in it: no non-static data members; no virtual functions; and no virtual
+base classes. In theory these sort of classes should use no space.
+However, they do.
+```cpp
+class Empty {}; //has no data so objects should use no memory
+
+class HoldsAnInt {  // should only use space for 1 int
+    int x;
+    Empty e;    //should require no memory
+};
+```
+You'll find that `sizeof(HoldsAnint) > sizeof(int);`. This is because
+with most compilers, sizeof(Empty) is 1. What makes this even worse is
+that alignment requirements can make HoldsAndInt take even more space.
+It would take the space of 2 ints, instead of 1 int + 1 char.
+
+This is because C++ has an edict against zero-size free standing objects.
+However, this does mean that if you inherit from Empty instead, the size
+will be as expected:
+```cpp
+class HoldsAnInt: private Empty {
+private:
+    int x;
+};
+```
+Now `sizeof(HoldsAnInt) == sizeof(int)`. This is known as the 'empty
+base optimisation' (EBO). In practice, most empty classes aren't emtpy,
+they contain typedefs, enums, static data members, or non-virtual
+members. The STL has many 'technically' empty classes. Thanks to EBO,
+these classes rarely increase the size of the inheriting class.
+
+However, this use case is indeed niche. It's good to be aware of but most
+likely rarely used.
+
+> [!abstract] Summary  
+> - Private inheritance means "is-implemented-in-terms-of". It is
+> usually inferior to composition, but makes sense if a derived class
+> needs access to protected base class members or to redefine virtual
+> functions.
+> - Unlike composition, private inheritance can enable the *empty base otimisation*.
+> This can be important for library developers who strive to minimise
+> object sizes.
 
 ### **Item 40:** Use multiple inheritance judiciously.  
+C++ community seems to break up into two camps regarding multiple
+inheritance:
+- if single inheritance(SI) is good, multiple inheritance(MI) must be better
+- single inheritance is good, but multiple inheritance isn't worth the
+trouble
 
+First thing to recognise with multiple inheritance is that it makes it
+possible to inherit the same name leading to ambiguity. For example you
+might inherit from two classes that both have the `checkout()` function.
+To fix this you would then have to specify which one you are calling:  
+`BorrowableItem::checkout();`  
+`ElectronicGadget::checkout();`  
+
+MI can also lead to the 'deadly MI diamond'.
+```cpp
+class File {...};
+
+class InputFile: public File {...};
+class OutputFile: public File {...};
+
+class IOFile: public InputFile, public OutputFile
+{...};
+```
+Here you have to confront the question whether you want to replicate the
+data members of the base class for each 'path':
+- IOFile -> InputFile -> File
+- IOFile -> OutputFile -> File
+C++ takes no position and happily supports both option. The default is to
+perform the replication. If you don't want that, you have to make the
+class with the data a virtual base class:
+```cpp
+class File {...};
+
+class InputFile: virtual public File {...};
+class OutputFile: virtual public File {...};
+
+class IOFile: public InputFile, public OutputFile
+{...};
+```
+
+From the viewpoint of correct behaviour, public inheritance should always
+be virtual. However, correctness is not the only perspective. Virtual
+inheritance has space and time costs. It also has complexity costs.
+==The responsibility of initialising a virtual base is borne by the most derived class in the hierarchy==.
+This means that (1) classes derived from virtual base classes must be aware of their virtual bases no matter how distant and (2) when a new
+derived class is added to the hierarchy, it must assume direct initialisation
+responsibilities for its virtual bases.
+
+Therefore the advice on virtual base classes is simple. Don't use virtual
+bases unless you have to. If you must, then avoid putting data in them so
+you don't have to worry about initialisation oddities. Interfaces in Java
+are in many ways comparable to virtual base classes in C++ and are also
+not allowed to contain any data.
+
+One legitimate use is to combine public inheritance of an interface with
+the private inheritance of an implementation.
+```cpp
+class IPerson {
+public:
+    virtual ~IPerson();
+    virtual std::string name() const = 0;
+    virtual std::string birthDate() const = 0;
+};
+// factory function to create Person object
+std::shared_ptr<IPerson> makePerson(DatabaseID personIdentified);
+```
+Here we have an interface IPerson and a factory function declaration used
+to create Person objects. But there has to be a concrete class for
+makePerson to instantiate and return a pointer for.
+
+Now lets assume we  already have a class called PersonInfo that we want
+to reuse to fit the IPerson interface.
+```cpp
+class PersonInfo {
+public:
+    explicit PersonInfo(DatabaseID pid);
+    virtual ~PersonInfo();
+    virtual const char* theName() const;
+    virtual const char* theBirthDate() const;
+    ...
+private:
+    virtual const char* valueDelimOpen() const;
+    virtual const char* valueDelimClose() const;
+    ...
+};
+```
+
+If we want to create a new class `CPerson` using the existing `PersonInfo`
+class, the relationship is clearly "CPerson is implemented in terms of
+PersonInfo". So we could combine private and public inheritance like so:
+```cpp
+class CPerson: public IPerson, private PersonInfo {
+public:
+    explicit CPerson(DatabaseID pid): PersonInfo(pid) {}
+
+    virtual std::string name() const
+    { return PersonInfo::theName();}
+    virtual std::string birthDate() const
+    { return PersonInfo::theBirthDate(); }
+private:
+    const char* valueDelimOpen() const { return "";}
+    const char* valueDelimClose() const { return "";}
+};
+```
+
+The example should demonstrate that multiple inheritance can be both
+useful and sensible. However, single inheritance is typically better. Just
+be judicious with the use of MI.
+
+> [!abstract] Summary  
+> - Multiple inheritance is more complex than single inheritance. It can
+> lead to ambiguity issues.
+> - Virtual inheritance imposes costs in size, speed, and complexity of
+> initialisation and assignment. It's most practical when virtual base
+> classes have no data.
+> - Multiple inheritance does have legitimate uses. One scenario involves
+> combining public inheritance from an iterface class with private
+> inheritance from a class that helps with implementation
 
 ## Ch7: Templates and generic programming  
 
