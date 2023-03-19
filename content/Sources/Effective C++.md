@@ -3211,10 +3211,285 @@ every time.
 
 
 ### **Item 43:** Know how to access names in templatised base classes.
+Consider an application that can send message to several different
+companies in either encrypted or cleartext form. If we have enough
+information during compilation to determine which messages will go
+to which companies, we can use a template based solution.
+```cpp
+class CompanyA {
+public:
+    ...
+    void sendCleartext(const std::string& msg);
+    void sendEncrypted(const std::string&* msg);
+    ...
+};
+class CompanyB {
+public:
+    ...
+    void sendCleartext(const std::string& msg);
+    void sendEncrypted(const std::string&* msg);
+    ...
+};
+...
+class MsgInfo{...};
 
+template<typename Company>
+class MsgSender {
+public:
+    ...
+    void sendClear(const MsgInfo& info)
+    {
+        std::string msg;
+        //create msg from info
+        Company c;
+        c.sendCleartext(msg);
+    }
+    void sendSecret(const MsgInfo& info)
+    {...}
+};
+```
+
+Lets say we now want a derived class that adds logging before and after
+we send a message:
+```cpp
+template<typename Company>
+class LoggingMsgSender: public MsgSender<Company> {
+public:
+    ...
+    void sendClearMsg(const MsgInfo& info)
+    {
+        //log before sending
+        sendClear(info);
+        //log after sending
+    }
+    ...
+};
+```
+Note that message sending function is called `sendClearMsg` which is
+different from the base class to side-step hiding inherited names.
+However, the code won't compile as compilers will say `sendClear()` does
+not exist. 
+
+To explore why lets look at template specialisations quickly:
+```cpp
+class CompanyZ {
+public:
+    ...
+    void sendEncrypted(const std::string& msg);
+    ...
+};
+
+template<>
+class MsgSender<CompanyZ> {
+public:
+    ...
+    void sendSecret(const MsgInfo& info);
+    {...}
+};
+```
+The `template<>` syntax specifies that this is a specialised version of the
+MsgSender template to be used when the template argument is `CompanyZ`.
+This is known as a *total template specialisation*. Now when we look
+back at the `LoggingMsgSender` template, `sendClear(info);` no longer
+makes sense as it might not exist for certain companies like `CompanyZ`.
+
+This is why the compilers generally refuse to look in templatised base
+classes for inherited names. In a sense, when we cross from object
+oriented C++ to template C++, inheritance stops working.
+
+So how do we make it work again? Three ways:
+- `this->`
+```cpp
+template<typename Company>
+class LoggingMsgSender: public MsgSender<Company> {
+public:
+    ...
+    void sendClearMsg(const MsgInfo& info)
+    {
+        //log before sending
+        this->sendClear(info);
+        //log after sending
+    }
+    ...
+};
+```
+
+- `using MsgSender<Company>sendClear;`
+```cpp
+template<typename Company>
+class LoggingMsgSender: public MsgSender<Company> {
+public:
+    using MsgSender<Company>::sendClear;
+    ...
+    void sendClearMsg(const MsgInfo& info)
+    {
+        //log before sending
+        sendClear(info);
+        //log after sending
+    }
+    ...
+};
+```
+
+- `MsgSender<Company>::sendClear(info);`
+```cpp
+template<typename Company>
+class LoggingMsgSender: public MsgSender<Company> {
+public:
+    ...
+    void sendClearMsg(const MsgInfo& info)
+    {
+        //log before sending
+        MsgSender<Company>::sendClear(info);
+        //log after sending
+    }
+    ...
+};
+```
+
+The third way is the least desirable way because if the function being
+called is virtual, explicit qualification turns off the virtual binding
+behaviour.
+
+> [!abstract] Summary  
+> In derived class templates, refer to names in base class templates
+> via a `this->` prefix, via using declarations, or via an explicit base
+> class qualification.
 
 ### **Item 44:** Factor parameter-independent code out of templates
+Templates are a good way to save time and avoid code replication. Instead
+of writing 20 similar classes, each with 15 member functions, you can
+write one template. You can also do the same for function templates.
 
+However, this can lead to *code bloat*. To counter this you need to do
+*commonality and variability analysis*. This is something you already do
+when writing non template code. You factor out common code if you
+see that there are similar looking code in different functions.
+
+The same needs to be done for templates. The catch is that in
+non-template code, replication is explicit. Meaning you have to replicate
+it by hand. In template code, replication is implicit. The code will be
+replicated without additional input from you. You will have to train
+yourself to bear this in mind.
+
+```cpp
+template<typename T, std::size_t n>
+class SquareMatrix {
+public:
+    ...
+    void inert();
+};
+...
+SquareMatrix<double, 5> sm1;
+sm1.invert();
+SquareMatrix<double, 10> sm1;
+sm1.invert();
+```
+In this example, two copies of invert will be instantiated. The functions
+will be identical other than the constants 5 and 10.
+
+One way to solve this is to put the parameterised version of invert into a
+base class. SquareMatrixBase is templatised, but only in the type of
+objects. This means all matrices holding a given type of object will use
+the same `invert` function.
+```cpp
+template<typename T>
+class SquareMatrixBase {
+protected:
+    ...
+    void invert(std::size_t matrixSize);
+    ...
+};
+
+template<typename T, std::size_t n>
+class SquareMatrix: private SquareMatrixBase<T> {
+private:
+    using SquareMatrixBas<T>::invert;
+public:
+    ...
+    void invert() {invert(n);}
+};
+```
+
+However, we still have another issue. SquareMatrixBase::invert needs to
+know what data to operate on. It's impractical to provide a pointer
+to the data for all functions that SquareMatrix might have. One solution
+is to have SquareMatrixBase store a pointer to the memory for the matrix
+values. If it stores that, then it might as well also store the size:
+```cpp
+template<typename T>
+class SquareMatrixBase {
+protected:
+    SquareMatrixBase(std::size_t n, T *pMem)
+    : size(n), pData(pMem) {}
+    void setDataPtr(T *ptr) { pData = ptr;}
+    ...
+private:
+    std::size_t size;
+    T *pData;
+};
+```
+Now the base class can decide how to allocate the memory. The derived
+class might choose to allocate the matrix inside the matrix object:
+```cpp
+template<typename T, std::size_t n>
+class SquareMatrix: private SquareMatrixBase<T> {
+public:
+    SquareMatrix()
+    : SquareMatrixBase<T>(n, data) {}
+    ...
+private:
+    T data[n*n];
+};
+```
+Objects such as these have no need for dynamic memory allocation but
+the objects themselves could be very large. An alternative that puts data
+on the heap could be:
+```cpp
+template<typename T, std::size_t n>
+class SquareMatrix: private SquareMatrixBase<T> {
+public:
+    SquareMatrix()
+    : SquareMatrixBase<T>(n, 0),
+      pData(new T[n*n])
+      {this->setDataPtr(pData.get());}
+    ...
+private:
+    boost::scoped_array<T> pData;
+};
+```
+
+Regardless of where the data is stored, the key result from a code bloat
+viewpoint is that many, perhaps all, of SquareMatrix's member functions
+can be simple inline calls to base class versions. At the same time, 
+SquareMatrix objects of different sizes are distinct types so there is no
+way to accidentally pass an object of `SquareMatrix<double,5>` to a
+function expecting `SquareMatrix<double,10>`.
+
+However, there are some associated costs. The versions of invert with
+the matrix sizes hardwired into them are likely to generate better code
+than shared version where the size is passed as a function parameter. On
+the other hand, one version of invert decreases the size of the executable
+which might lead to improved locality of reference in the instruction
+cache. Which is better? You will have to try both and measure.
+
+This item discusses bloat due to non-type template parameters. However,
+type parameters can cause bloat too. E.g. int and long can have same
+representation on many platforms. Similarly, on most platforms all
+pointer types have same binary representation, but each type pointer
+can lead to bloat e.g. list<int*>, list<const int*>, 
+list<SquareMatrix<long,3>\*>. This can be avoided using a strongly
+typed pointer. This is what the STL does.
+
+> [!abstract] Summary  
+> - Templates generate multiple classes and multiple functions so any
+> template code not dependent on a template parameter causes bloat.
+> - Bloat due to non-type template parameters can often be eliminated
+> by replacing template parameters with function parameters or class
+> data members.
+> - Bloat due to type parameters can be reduced by sharing
+> implementations for instantiation types with identical binary
+> representations.
 
 ### **Item 45:** Use member function templates to accept "all compatible types."
 
