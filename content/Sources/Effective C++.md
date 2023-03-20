@@ -3492,9 +3492,131 @@ typed pointer. This is what the STL does.
 > representations.
 
 ### **Item 45:** Use member function templates to accept "all compatible types."
+One of the things that raw pointers do well is support implicit conversions.
+Derived class pointers implicitly convert into base class pointers.
+Emulating such conversions in user-defined smart pointer classes is
+tricky.
 
+```cpp
+class Top {...};
+class Middle: public Top {...};
+class Bottom: public Middle {...};
+Top *pt1 = new Middle;
+Top *pt2 = new Bottom;
+const Top *pct = pt;
+```
+This example shows some of the implicit conversions that can take place
+in a three-level hierarchy.
+
+With smart pointers the code might look like this:
+```cpp
+tempalte<typename T>
+class SmartPtr {
+public:
+    explicit SmartPtr(T *realPtr);
+    ...
+};
+SmartPtr<Top> pt1 = SmartPtr<Middle>(new Middle);
+SmartPtr<Top> pt2 = SmartPtr<Bottom>(new Bottom);
+SmartPtr<const Top> pct = pt1;
+```
+However, this does not compile as there is no inherent relationship
+among different instantiations of the same template. Compilers view
+`SmartPtr<Middle>` and `SmawrtPtr<Top>` as completely different classes.
+
+In principle, the number of constructors we would need could be unlimited
+as the hierarchy can be indefinitely extended. It seems we need a
+*constructor template* not a constructor function:
+```cpp
+template<typename  T>
+class SmartPtr {
+public:
+    template<typename U>
+    SmartPtr(const SmartPtr<U>& other);
+    ...
+};
+```
+This says that for every type T and every type U, a `SmartPtr<T>` can be
+create from a `SmartPtr<U>`, because `SmartPtr<T>` has a constructor
+that takes a `Smartptr<U>` parameter. Constructors like this are sometimes
+known as `generalised copy constructors`. This one is not marked explicit
+as as type conversions between built-in pointer types are implicit and
+require not cast, so it's reasonable for smart pointers to emulate that
+behaviour.
+
+However, this version now offers more than we want. We don't want to
+be able to create a `SmartPtr<Top>` form a `SmartPtr<Bottom>` as that's
+contrary to the meaning of public interface. We also don't want to be able
+to create a `SmartPtr<int>` from a `SmartPtr<double>` as there is no
+corresponding implicit conversion.
+
+We can use the implementation of the constructor template to restrict the
+conversions to those we want.
+```cpp
+template<typename T>
+class SmartPtr {
+public:
+    template<typename U>
+    SmartPtr(const Smartptr<U>& other)
+    : heldPtr(ohter.get()) {...}
+    T* get() const { return heldPtr;}
+    ...
+private:
+    T *heldPtr;
+};
+```
+Since we use the member initialisation list to to initialise `SmartPtr<T>`'s
+data member of type T* with the pointer of type U*, this will only compile
+if there is an implicit conversion from a U* pointer to a T*.
+
+> [!abstract] Summary  
+> - Use member function templates to generate functions that accept all
+> compatible types.
+> - If you declare member templates for generalised copy construction or
+> generalised assignment, you'll still need to declare the normal copy
+> constructor and copy assignment operator too.
 
 ### **Item 46:** Define non-member functions inside templates when type conversions are desired
+Item 24 explains way only non-member functions are eligible for implicit
+type conversions on all arguments.
+
+```cpp
+template<typename T>
+class Rational {
+public:
+    Rational(const T& numberator = 0,
+             const T& denominator = 1);
+    const T numberator() const;
+    const T denominator() const;
+    ...
+};
+template<typename T>
+const Rational<T> operator*(const Rational<T>& lhs,
+                            const Rational<T>& rhs)
+{...}
+```
+
+As in item 24, we want to support mixed-mode arithmetic. So we want
+the following code to compile
+```cpp
+Rational<int> oneHalf(1,2);
+Rational<int> result = oneHalf * 2;  //error won't compile
+```
+From item 24, we know that `operator*` is being called with two
+parameters. However, the compiler can't figure out which function to
+instantiate. They need to figure out what T is but they can't.
+
+One parameter is a `Rational<T>` and the other is an int.
+==Implicit type conversions are never considered during template argument deduction.==
+We can relieve compilers of the challenge by taking advantage of the fact
+that a friend declaration in a template class can refer to a specific
+function. That means the class `Rational<T>` can declare `operator*` for
+`Rational<T>` as a friend function.
+
+> [!abstract] Summary  
+> When writing a class template that offers functions related to the
+> template that support implicit conversions on all parameters, define
+> those functions as friends inside the class template.
 
 ### **Item 47:** Use traits classes for information about types.
 
