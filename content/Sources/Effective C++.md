@@ -21,7 +21,7 @@ C++ is better understood as a group of related sub-languages. These are:
 - Template C++
 - The STL
 
-This is important to keep in mind as different sublanguages have different effective strategies and different conventions.
+This is important to keep in mind as different sub-languages have different effective strategies and different conventions.
 
 
 ### **Item 2:** Prefer consts, enums, and inlines to \#defines  
@@ -37,7 +37,7 @@ const char* const authorName = "Scott Meyers";
 const std::string authorName("Scott Meyers");
 ```
 
-The preprocessor will blindly subsitute ASPECT_RATIO for 1.653 resulting in multple copies in the object code.   
+The preprocessor will blindly substitute ASPECT_RATIO for 1.653 resulting in multiple copies in the object code.   
 
 ```cpp
 // BAD
@@ -3605,6 +3605,10 @@ Rational<int> result = oneHalf * 2;  //error won't compile
 From item 24, we know that `operator*` is being called with two
 parameters. However, the compiler can't figure out which function to
 instantiate. They need to figure out what T is but they can't.
+```cpp
+// is T int or Rational<T>?
+Rational<int> result = operator*(onehalf, 2);
+```
 
 One parameter is a `Rational<T>` and the other is an int.
 ==Implicit type conversions are never considered during template argument deduction.==
@@ -3613,15 +3617,321 @@ that a friend declaration in a template class can refer to a specific
 function. That means the class `Rational<T>` can declare `operator*` for
 `Rational<T>` as a friend function.
 
+```cpp
+template<typename T>
+class Rational {
+public:
+    ...
+friend
+    const Rational operator*(const Rational& lhs,
+                             const Rational& rhs);
+};
+template<typename T>
+const Rational<T> operator*(const Rational<T>& lhs,
+                             const Rational<T>& rhs)
+{...}
+```
+This wont' still link just yet. But first a quick note about the syntax.
+==Inside a class template, the name of the template can be used as shorthand for the template and it's parameters==.
+So inside `Rational<T>` we can just write `Rational` instead of
+`Rational<T>`.
+
+Back to the linking problem. If we declare a function ourselves, we're
+also responsible for defining that function. In this case we never provide
+one and that's why the linker's can't find one. The simplest solution is
+to merge the body of `operator*` in the declaration. This will compile
+and link fine.
+
+The other approach worth mentioning is the "have a friend call a helper"
+method.
+```cpp
+template<typename T> class Rational; //declare
+template<typename T>
+const Rational<T> doMultiply(const Rational<T>& lhs
+                             const Rational<T>& rhs);
+
+template<typename T>
+class Rational {
+public:
+    ...
+friend
+    const Rational<T> operator*(const Rational<T>& lhs,
+                                const Rational<T>& rhs)
+    { return doMultiply(lhs, rhs); } 
+    ...
+};
+```
+
 > [!abstract] Summary  
 > When writing a class template that offers functions related to the
-> template that support implicit conversions on all parameters, define
+> template that support ==implicit conversions== on all parameters, define
 > those functions as friends inside the class template.
 
 ### **Item 47:** Use traits classes for information about types.
+There are 5 kinds of iterator categories:
+- *Input iterators*. Only move forward. Only move one step at a time. Only
+read what they're pointed to and only once.
+- *Output iterators*. Only move forward. Only one step at a time. Only
+write where they're pointed and only once.
+- *Forward iterators*. All of above plus can read or write more than once.
+- *Bidirectional iterators*. Similar to forward iterators but also backwards.
+e.g. `std::list`
+- *Random access iterators*. Adds 'iterator arithmetic' to bidirectional
+iterator i.e. jump forward or backward an arbitrary distance in constant
+time.
 
+For each iterator category, C++ has a "tag struct" in the STL to identify
+it.
+```cpp
+struct input_iterator_tag {};
+struct output_iterator_tag {};
+struct forward_iterator: public input_iterator_tag {};
+struct bidrectional_iterator_tag: public forward_iterator {};
+struct random_access_iterator_tag: public bidirectional_iterator_tag {};
+```
+
+To implement `std::advance` you can use 'iterator arithmetic' to move
+a random access iterator a specific distance or you can increment the
+iterator a certain amount of times in a loop. This requires being able to
+tell what kind of iterator you are working on.
+==This is what traits let you do. They allow you to get information about a type during compilation.==
+
+Traits aren't a keyword. They are a technique and convention followed by
+C++ programmers. One demand on the technique is that it has to work
+for built-in types as well as user defined types. This means you can't
+nest information about a type as you can't do this with pointers.
+
+The standard technique is to put it into a template and one or more
+specialisations for that template.
+```cpp
+tempalte<typename iterT>
+struct iterator_traits;
+```
+
+The way `iterator_traits` works is that for any iterator type (iterT), a
+typedef named iterator_category is declared in the struct of
+`iterator_traits<iterT>`. This will be used to identify the iterator
+category of `iterT`.
+
+```cpp
+template<...>
+class deque {
+public:
+    class iterator {
+    public:
+        typedef random_access_iterator_tag iterator_category;
+        ...
+    };
+    ...
+};
+```
+
+iterator_traits just parrots back the iterator class's nest typedef:
+```cpp
+template<typename IterT>
+struct iterator_traits {
+    typedef typename IterT::iterator_catebory iterator_category;
+    ...
+};
+```
+
+This works well for user-defined types, but not at all for pointers. The
+second part of implementing iterator_traits is to create a `partial template specialisation`
+for pointer types. Pointers act as random access iterators so that's what
+we'll use.
+```cpp
+tempalte<typename T>
+struct iterator_traits<T*>
+{
+    typedef random_access_iterator_tag iterator_category;
+}
+```
+
+Given `iterator_traits` we can now refine our pseudocode for advance:
+
+```cpp
+template<typename IterT, typename DistT>
+void advance(IterT& iter, DistT d)
+{
+    if (typeid(typename std::iterator_traits<IterT>::iterator_category) ==
+        typeid(std::random_access_iterator_tag))
+        ...
+}
+```
+
+There is one more problem. We know the type during compilation but we
+are evaluating it at runtime in the if statement. What we want is
+conditional construct for types that is evaluated during compilation. We
+can get that behaviour with overloading.
+
+When you overload a function, compilers will pick the best overload based
+on the arguments you're passing. A compile time conditional for types. To
+get `advance` to behave the way we want, we have to create multiple
+versions of an overloaded function declaring each to take a different type
+of iterator_category object.
+
+```cpp
+template<typename IterT, typename DistT>
+void doAdvance(IterT& iter, DistT d, 
+             std::random_access_iterator_tag)
+{
+    iter += d;
+}
+
+template<typename IterT, typename DistT>
+void doAdvance(IterT& iter, DistT d,
+             std::bidirectional_iterator_tag)
+{
+    if (d >= 0) { while (d--) ++iter; }
+    else { while (d++) --iter;}
+}
+
+template<typename IterT, typename DistT>
+void doAdvance(IterT& iter, DistT d,
+             std::input_iterator_tag)
+{
+    if (d < 0) {
+        throw std::out_of_range("Negative distance");
+    }
+    while (d--) ++iter;
+}
+```
+
+`forward_iterator_tag` inherits from `input_iterator_tag` so the version of
+doAdvance for `input_iterator_tag` will also work for it.
+
+Now, given the overloads for `doAdvance`, all `advance` needs to do is call
+them.
+```cpp
+template<typename IterT, typename DistT>
+void advance(IterT iter, DistT d)
+{
+    doAdvance(iter, d,
+              typename std::iterator_traits<IterT>::iterator_category());
+}
+```
+
+**How to use traits class**
+- Create a set of overloaded "worker" functions or function templates
+that differ in a traits parameter. Implement each in accord with the traits
+info passed.
+- Create a "master" function or function template that calls the workers
+passing information provided by a traits class.
+
+> [!abstract] Summary  
+> - Traits classes make information about types available during
+> compilation. They're implemented using templates and template
+> specialisation.
+> - In conjunction with overloading, traits make it possible to perform
+> compile-time `if...else` tests on types.
 
 ### **Item 48:** Be aware of template metaprogramming.
+Template metaprogramming (TMP) is the process of writing template based
+C++ programs that execute during compilation. It is a program that
+executes inside the C++ compiler. That is bizarre.
+
+TMP has two great strengths:
+- Makes some things easy that would otherwise be hard or impossible.
+- Can shift work form runtime to compile time. Some consequences of this are:
+    - Some errors usually detected at runtime can then be detected at compile time.
+    - Programs can be more efficient.
+    - Compilation takes longer.
+
+Consider the typeid based approach of advance from the previous item:
+```cpp
+template<typename IterT, typename DistT>
+void advance(IterT& iter, DistT d)
+{
+    if (typeid(typename std::iterator_traits<IterT>::iterator_category) ==
+        typeid(std::random_access_iterator_tag))
+    {
+        iter += d;
+    }
+    else
+    {
+        if (d >= 0) {while (d--) ++iter;}
+        else {while (d++) --iter};
+    }
+}
+```
+
+One of the strengths of TMP was that some things that are hard are now
+easy with TMP. This is one example:
+```cpp
+std::list<int>::iterator iter;
+...
+advance(iter, 10);
+```
+This will *NOT* compile. Why? Because `iter += d` does not work on list
+iterators which are bidirectional. We know it will never go in the `if` block
+but compilers are obliged to make sure all source code is valid even if not
+executed.
+
+TMP is turing complete. For a quick glimpse of what is possible lets look
+at the "hello world" of TMP, computing a factorial.
+```cpp
+//general case. Factorial n = n times factorial n - 1
+template<unsigned n>
+struct Factorial {
+    enum { value = n * Factorial<n-1>::value};
+};
+
+//special case. factorial 0 = 1
+template<>
+struct Factorial<0> {
+    enum { value = 1};
+}
+```
+
+This uses the 'enum hack' to store the value. Now to use factorial, you
+can do so like this:
+```cpp
+int main()
+{
+    std::cout << Factorial<5>::value; //prints 120
+    std::cout << Factorial<10>::value; //prints 3628800
+}
+```
+
+Here are 3 examples to describe the power of TMP:
+- **Ensuring dimensional unit correctness.** in scientific and engineering
+applications, it's essential to combine units(e.g mass, distance, time
+etc) correctly. Using TMP, it's possible to ensure (during compilation)
+that all dimensional unit combinations in a program are correct no matter
+how complex the calculations. One interesting aspect of this use of TMP
+is that fractional dimensional exponents can be supported. This requires
+fractions to be reduced *during compilation* so that compilers can confirm
+that "time 1/2" is the same as "time 4/8".
+- **Optimising matrix operations.** Item 21 talked about how some functions
+must return new objects.
+```cpp
+typedef SquareMatrix<double, 10000> BigMatrix;
+Bigmatrix m1, m2, m3, m4, m5; //create matrices
+...                           //give them values
+BIgMatrix result = m1 * m2 * m3 * m4 * m5; //compute product
+```
+Calculating the normal way requires the creation of 4 temporary matrices.
+Furthermore, the independent multiplications generate a sequence of four
+loops over the matrix elements. Using advance template technology related
+to TMP called *expression tempaltes*, it's possible to eliminate the
+temporaries and merge the loops, all without changing the syntax of the
+client code above.
+- **Generating custom design pattern implementations.** Design patterns like
+Strategy, Observer, Visitor, etc can be implemented in many ways. Using
+TMP based technology called *policy-based design*, it's possible to create
+templates representing independent design choices ("policies") that can
+be combined in arbitrary ways to yield pattern implementations with
+custom behaviour. For example, this technique has been used for a few
+templates implementing smart pointer behavioral policies to generate
+(during compilation) any of hundreds of different smart pointer types.
+This is a basis for what is known as generative programming.
+
+> [!abstract] Summary  
+> - TMP can shift work from runtime to compile time, enabling earlier
+> detection and higher runtime performance.
+> - TMP can generate custom code based on combination of policy
+> choices, and also be used to avoid generating code inappropriate for
+> particular types.
 
 ## Ch8: Customising `new` and `delete`  
 
