@@ -3913,7 +3913,7 @@ BIgMatrix result = m1 * m2 * m3 * m4 * m5; //compute product
 Calculating the normal way requires the creation of 4 temporary matrices.
 Furthermore, the independent multiplications generate a sequence of four
 loops over the matrix elements. Using advance template technology related
-to TMP called *expression tempaltes*, it's possible to eliminate the
+to TMP called *expression templates*, it's possible to eliminate the
 temporaries and merge the loops, all without changing the syntax of the
 client code above.
 - **Generating custom design pattern implementations.** Design patterns like
@@ -3934,6 +3934,229 @@ This is a basis for what is known as generative programming.
 > particular types.
 
 ## Ch8: Customising `new` and `delete`  
+
+### **Item 49:** Understand the behaviour of the new-handler
+
+```cpp
+namespace std {
+    typedef void (*new_handler)();
+    new_handler set_new_handler(new_handler p) throw();
+}
+```
+
+`set_new_handler`'s parameter is a pointer to the function operator `new`
+should call if it can't allocate the requested memory. The return value of
+`set_new_handler` is a pointer to the previous function that would have
+been called.
+
+You can use `set_new_handler` like so:
+```cpp
+void outOfMem()
+{
+    std::cerr << "Unable to satisfy requeset for memory\n";
+    std::abort();
+}
+
+int main()
+{
+    std::set_new_handler(outOfMem);
+    int* pBigDataArray = new int[100000000L];
+    ...
+}
+```
+
+When operator `new` is unable to fulfill a memory request, it calls the
+new_handler repeatedly until it *can* find enough memory. A new_handler
+must do one of the following:
+- **Make more memory available**
+- **Install a different new-handler**
+- **Deinstall the new-handler**
+    - Pass `nullptr` to `set_new_handler` which will cause operator `new` to throw an exception next time memory allocation is unsuccessful.
+- **Throw an exception**
+- **Not return**
+    - Usually by aborting
+
+To implement 'class-specific new-handler' like behaviour:
+```cpp
+class Widget {
+public:
+    static std::new_handler set_new_handler(std::new_handler p) throw();
+    static void* operator new(std::size_t size) throw(std::bad_alloc);
+private:
+    static std::new_handler currentHandler;
+};
+
+std::new_handler Widget::set_new_handler(std::new_handler p) throw()
+{
+    std::new_handler oldHandler = currentHandler;
+    currentHandler = p
+    return oldHandler;
+}
+```
+
+The `Widget`s operator `new` will do the following:
+- Call the standard `set_new_handler` with Widget's error handling
+function. This installs widgets new_handler as the global new_handler.
+- Call global operator `new` to perform memory allocation.
+- If allocation fails, call Widgets new_handler. If it still can't allocate
+the memory, restore the original new_handler, then propagate exception.
+You can use a RAII object for this.
+- if allocation succeeds, the destructor for the object managing the global
+new_handler restores the global new_handler to what it was.
+
+e.g.
+```cpp
+class NewHandlerHolder {
+public:
+    explicit NewHandlerHolder(std::new_handler nh)
+    : handler(nh) {}
+    ~NewHandlerHolder()
+    {std::set_new_handler(handler);}
+private:
+    std::new_handler handler;
+    NewHandlerHolder(const NewHandlerHolder&);
+    NewHandlerHolder& operator=(const NewHandlerHolder&)''
+}
+
+// WIdget's operator new
+void* Widget::operator new(std::size_t size) throw(std::bad_alloc)
+{
+    NewHandlerHolder
+      h(std::set_new_handler(currentHandler));
+    return ::operator new(size);
+}
+```
+
+Client's of Widget would use it like so:
+```cpp
+void outOfMem();
+
+//set outOfMem as widget's new-handling func
+Widget::set_new_handler(outOfMem);
+
+// calls outOfMem if allocation fails
+Widget* pw1 = new Widget;
+// calls global new-handling function if allocation fails
+std::string* ps = new std::string;
+
+// set new-handling func to nothing
+Widget::set_new_handler(0);
+
+//if mem. alloc fails, throw exception immediately
+Widget* pw2 = new Widget;
+```
+
+The above NewHandlerHolder can be adapted very easily to be used as a
+"mixin-style" base class using templates. Then Widget could just inherit
+from that class:
+```cpp
+template<typename T>
+class NewHandlerHolderSupport {
+public:
+    static std::new_handler set_new_handler(std::new_handler p) throw();
+    static void* operator new(std::size_t size) throw(std::bad_alloc);
+private:
+    static std::new_handler currentHandler;
+};
+...
+// implement functions from interface
+...
+class Widget: public NewHandlerSupport<Widget> {
+...
+};
+```
+
+Widget inheriting from a templatised base class that takes `Widget` as a
+type parameter might look strange but it is a useful technique. It even
+has a name. ==Curiously recurring template pattern (CRTP)==.
+
+Until 1993, C++ required that `new` return null when it was unable to allocate
+the requested memory. Now it throws `bad_alloc`. To support the old style
+new C++ offers a nothrow form of `new`.
+```cpp
+Widget* pw2 = new(std::nothrow) Widget;
+```
+Unfortunately, this is not very useful as it is only nothrow for the
+allocation part. Constructing the object can still throw.
+
+> [!abstract] Summary  
+> - set_new_handler allows you to specify a function to be called when
+> memory allocation requests cannot be satisfied.
+> - Nothrow new is of limited utility, because it applies only to memory
+> allocation; associated constructor calls may still throw exceptions.
+
+### **Item 50:** Understand when it makes sense to replace new and delete
+Three most common reasons to replace compiler version of operator `new`
+or `delete`.
+- **To detect usage errors**
+    - A custom operator new can keep list of allocated addresses and operator delete can remove from the list. This can easily detect usage errors such as failure to delete.
+    - Custom operator new can allocate blocks alongside signatures. Then operator delete can check if the signatures are intact. This can detect an overrun or underrun.
+- **To improve efficiency**
+    - Compiler versions of new and delete are general purpose. They have to work well with programs that run for less than a second as well as something like web servers. By using a more specialised version, it can often be easy to increase the performance of your program.
+- **To collect usage statistics**
+    - Before optimising, you can gather data on how your program uses and allocates memory. What is the distribution of allocated block sizes, their lifetimes, pattern the blocks are allocated and de-allocated (FIFO or LIFO or random), maximum amount of allocated memory used at a given time etc.
+
+Simple (with problems) operator `new` that facilitates under and overruns.
+```cpp
+static const int signature = 0xDEADBEEF;
+typedef unsigned char Byte;
+
+void* operator new(std::size_t size) throw(std::bad_alloc)
+{
+    using namespace std;
+
+    // increase size of request to fit signature
+    size_t realSize = size + 2 * sizeof(int);
+    // call malloc to get memory
+    void* pMem = malloc(realSize);
+    if (!pMem) throw bad_alloc();
+    //write signature into first and last parts of memory
+    *(static_cast<int*>(pMem)) = signature;
+    *(reinterpre_cast<int*>(static_cast<Byte*>(pMem) + realSize-sizeof(int))) = signature;
+    // return pointer to the memory just past first sig
+    return static_cast<Byte*>(pMem) + sizeof(int);
+}
+```
+
+Most of the shortcomings of this have to do with failure to adhere to
+the C++ conventions for operator `new`. However, one more subtle
+issue is **alignment**.
+
+Many computer architectures require that data of particular types be
+placed in memory at particular kinds of addresses. E.g. a requirement
+might be that pointers occur at addresses that are a multiple of 4
+(i.e. be *four-byte aligned*) or that doubles must occur at addresses
+that are multiples of 8 (*eight-byte aligned*). Failure could result in
+hardware exceptions for some architectures. More forgiving ones
+might just result in degraded performance.
+
+Details like this make writing professional-quality memory managers
+difficult. Don't try it unless you have to. An option is to use open
+source memory managers. One example is the Pool library from Boost.
+It optimises for allocation of a large number of small objects.
+
+We can now add more bullet points to why we might want to use custom
+version of `new` and `delete`
+- To detect usage errors
+- To collect statistics about the use of dynamically allocated memory
+- To increase the speed of allocation and deallocation.
+- To reduce space overhead of default memory management.
+- To compensate for suboptimal alignment in default allocator.
+- To cluster related objects near one another.
+- To obtain unconventional behaviour - e.g. Deallocate blocks in shared memory via a C API.
+
+> [!abstract] Summary  
+> There are many valid reasons for writing custom versions of `new`
+> and `delete`. Some include improving performance, debugging heap
+> usage errors, and collecting heap usage information.
+
+### **Item 51:** Adhere to convention when writing `new` and `delete`
+
+
+
+
+### **Item 52:** Write placement `delete` if you write placement `new`
+
 
 ## Ch9: Miscellany  
 
