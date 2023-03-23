@@ -4152,10 +4152,114 @@ version of `new` and `delete`
 
 ### **Item 51:** Adhere to convention when writing `new` and `delete`
 
+Implementing a conformant operator `new` requires:
+- have right return value
+- call new-handling function when insufficient memory available
+- cope with requests for no memory
+- avoid hiding the "normal" `new`
 
+Here is a simple implementation:
+```cpp
+void* operator new(std::size_t size) throw (std::bad_alloc)
+{
+    using namespace std;
+    if (size == 0) {
+        size = 1;
+    }
+
+    while (true)
+    {
+        //attempt to allocate size bytes
+        if (/*allocation was successful*/)
+            return /*pointer to memory*/;
+
+        // allocation unsuccessful. Get current new_handler
+        new_handler globalHandler = set_new_handler(0);
+
+        if (globaHandler)(*globalHandler)();
+        else throw std::bad_alloc();
+    }
+}
+```
+
+For operator `new[]`, remember you can't figure out how many objects will
+be in the array or even how big an object is. This is because  a base
+class's `new[]` might be used, through inheritance, to allocate memory for
+an array of derived class objects. All you can do is allocate a chunk of
+memory. All you need to remember is to make sure it is safe to delete a
+null pointer.
+
+`size_t` values passed to operator `delete` may be incorrect if the object
+being deleted was derived from a base class lacking a virtual destructor.
+Make sure you're base classes have virtual destructors.
+
+> [!abstract] Summary  
+> - Operator `new` should contain an infinite loop trying to allocate
+> memory, should call new-handler if it can't satisfy a memory request,
+> and should handle requests for zero bytes. Class specific versions
+> should handle requests for larger blocks than expected.
+> - Operator `delete` should do nothing if passed a pointer that is null.
+> Class specific versions should handle blocks that are larger than
+> expected.
 
 
 ### **Item 52:** Write placement `delete` if you write placement `new`
+
+For a line such as this:
+```cpp
+Widget *pW = new Widget;
+```
+Two function calls are made, one to operator new to allocate memory and
+another to the constructor of Widget. If the first call succeeds but the
+second one does not, the memory allocation has to be undone. However,
+client code is unable to do this as `*pW` was never assigned.
+
+The C++ runtime must handle this responsibility. With normal forms of  `new`
+and `delete` it is not a problem. However, if you have a class specific one
+with extra parameters it is known as a ==placement== version of `new`.
+
+There is an 'original' version of placement new in the STL:
+```cpp
+void operator new(std::size_t, void* pMemory) throw();
+```
+Sometimes when people talk about 'placement new' they are talking about
+this specific original version. Be mindful what one they are talking about.
+
+Now, if you use a placement version of new and the constructor call fails,
+the runtime system will look for a version of new with the same number
+of parameters and types. If it finds it, it calls it. If it does not, then no
+delete will be called.
+
+To eliminate memory leaks, you need to specify a matching version of
+placement `delete`.
+```cpp
+class Widget {
+public:
+    ...
+    // class specific placement new
+    static void* operator new(std::size_t size, std::ostream& logStream)
+      throw(std::bad_alloc);
+    // class specific delete - when no exception throw
+    static void operator delete(void* pMemory, std::size_t size)
+      throw();
+    // class specific placement delete - when exceptions thrown
+    static void operator delete(void* pMemory, std::ostream& logStream)
+      throw();
+};
+```
+
+One thing to bear in mind that when you declare class specific `new` and
+`delete`, this will hide the global versions. Be sure to make them
+available in addition to any custom operator `new` forms you create. This
+can be done by creating a base class containing the normal global
+versions and inheriting from it.
+
+> [!abstract] Summary  
+> - When you write a placement version of operator `new`, be sure to
+> write the corresponding placement version of operator `delete`. If you
+> don't, there may be subtle, intermittent memory leaks.
+> - When you declare placement versions of `new` and `delete`, be sure not
+> to unintentionally hide the normal versions of those functions.
 
 
 ## Ch9: Miscellany  
