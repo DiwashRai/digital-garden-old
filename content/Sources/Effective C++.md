@@ -4264,4 +4264,124 @@ versions and inheriting from it.
 
 ## Ch9: Miscellany  
 
+### **Item 53:** Pay attention to compiler warnings
+Compiler warnings should not be ignored in C++ with the thought that "if
+it was really a big problem, it would be an error". Here is one example:
+```cpp
+class B {
+public:
+    virtual void f() const;
+};
+
+class D: public B {
+public:
+    virtual void f();
+};
+```
+The intent is for `D::f` to redefine `B::f` but the mistake is that the version
+in D is not const. The compiler might warn you by saying something like
+"Warning: D::f() hides virtual B::f()". It is a mistake to think,
+"of course it does. That's what i'm trying to do". Anyhow, if this is
+ignored, it will almost certainly lead to erroneous behaviour which will
+require a lot of debugging to later discover.
+
+After you gain experience with warning messages from a particular
+compiler, you'll learn to understand the different messages. At that point
+you can then opt to ignore certain classes if warnings, although it is
+better practice to strive for warning free code.
+
+Relying on warnings is also not a good idea as there will be differences
+across different compilers. You should strive to write warning free code
+without relying on the compilers warning to catch mistakes. A different
+compiler might not provide the warning message that you have become
+reliant on getting.
+
+> [!abstract] Summary  
+> - Take compiler warnings seriously and strive to compile warning-free
+> at the maximum warning level supported by your compiler.
+> - Don't become dependent on compiler warnings because different
+> compilers will warn you about different things. Moving compilers may
+> eliminate a warning that you have become reliant on.
+
+
+### **Item 54:** Familiarise yourself with the standard library, including TR1
+Initial standard for C++ was ratified in 1998. in 2003, a minor 'bug-fix'
+update was issued. The standardisation committee continued it's work,
+however, and a "Version 2.0" C++ standard was adopted in 2011.
+
+C++11 includes a number of interesting new language features, but most
+come in the form of additions to the standard library. Before we look at
+C++11, lets look at what was included in the standard library by C++98:
+- **The standard template library (STL)**, including containers;
+iterators; algorithms; function objects; and various container and function
+object adapters.
+- **Iostreams**, including support for user-defined buffering, internalised IO
+and predefined objects `cin`, `cout`, `cerr` and `clog`.
+- **Support for internationalisation**. Multiple active locales. `wchar_t`.
+`wstring`. 
+- **Support for numerical processing**, including templates for complex
+numbers and arrays of pure values.
+- **An exception hierarchy**
+- **C89's standard library**
+
+Technical Report 1 (TR1) specifies 14 new components. All are in the std
+namespace (used to be nested within std in the tr1 namespace).
+- **Smart pointers**
+- **tr1::function**. Makes it possible to represent *any* callable entity.
+- **tr1::bind**
+- **Hash tables**
+- **Regular expressions**
+- **Tuples**
+- **tr1::array**
+- **tr1::mem_fn**. Syntactically uniform way of adapting member function pointers
+- **tr1::reference_wrapper**. facility to make references act a bit more like objects.
+- **Random number generation**
+- **Mathematical special functions**, including Laguerre polynomial, Bessel functions etc.
+- **C99 compatibility extensions**, collection of functions and templates
+designed to bring many new C99 features to C++.
+- **Type traits**
+- **tr1::result_of**, a template to deduce return type of function calls.
+
+> [!abstract] Summary  
+> - The primary C++ library functionality consists of the STL, iostreams,
+> and locales.
+> - TR1 added support for smart_pointers, generalised function pointers
+> , hash-based containers, regular expressions and 10 more components.
+
+
+### **Item 55:** Familiarise yourself with Boost.
+Look to boost for the following:
+- High quality, open source, platform and compiler-independent libraries
+- Community of ambitious, talented C++ developers working on
+state-of-the-art library design and implementation
+- Glimpse of what C++ might look like in the future
+
+Boost was founded by committee members and there is strong overlap between Boost and committee memberships.
+
+It's process for accepting libraries is based on peer review. This keeps
+poorly written libraries out of Boost, but also helps to educate library
+authors in the considerations that go into design, implementation, and
+documentation of industrial-strength cross-platform libraries.
+
+Boost covers a large cornucopia of topics. These categories include:
+- **String and text manipulation**
+- **Containers**
+- **Function objects and higher-order programming**
+- **Generic programming**
+- **Template metaprogramming**
+- **Math and numerics**
+- **Correctness and testing**
+- **Data structures**
+- **Inter-language support**, including a library to allow seamless
+interoperability between C++ and python.
+- **Memory**, including pool library for high-performance fixed-size allocators.
+- **Miscellaneous**: CRC checking, date and time manipulations, traversing
+file systems.
+
+> [!abstract] Summary  
+> - Boost is a community and web site for the development of free,
+> open source, peer-reviewed C++ libraries. Boost plays an influential
+> role in C++ standardisation.
+> - Boost offers implementations of many TR1 components, but it also
+> offers many other libraries.
 
