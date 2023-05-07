@@ -48,4 +48,4 @@ j
 A typical architecture for an LRUCache involves a doubly linked list and a
 hash map.
 
-![lrucache](attachments/lrucache.svg)
+![lrucache](attachments/lrucache.png)

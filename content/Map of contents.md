@@ -6,3 +6,4 @@ title: "Map of contents"
 - [Productivity](Topics/Productivity.md)
 - [Mental Models](Topics/Mental%20Models.md)
 - [Journaling](Topics/Journaling.md)
+- [AI](Topics/AI.md)
