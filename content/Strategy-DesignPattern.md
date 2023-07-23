@@ -2,7 +2,7 @@
 title: "Strategy Design  Pattern"
 tags:
 - atom
-- Design Pattern
+- design pattern
 ---
 Reference:  
 Topics:  
