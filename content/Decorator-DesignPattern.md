@@ -1,8 +1,8 @@
 ---
-title: ""
+title: "Decorator Design Pattern"
 tags:
 - atom
-- design pattern
+- design-pattern
 ---
 Reference:  
 Topics:  
