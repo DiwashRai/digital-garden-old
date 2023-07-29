@@ -1,5 +1,5 @@
 ---
-title: "Single Design Pattern"
+title: "Singleton Design Pattern"
 tags:
 - atom
 - design-pattern
@@ -27,35 +27,35 @@ method that creates a static instance of the class.
 ```cpp
 #include <iostream>
 
-class Singleton {
-private:
-    // Private constructor so that no objects
-    // can be created.
-    Singleton() {
-        std::cout << "Singleton instance created" << std::endl;
-    }
-
-    // Static member is initiated as null.
-    static Singleton* instance;
-
+class Singleton
+{
 public:
-    // Static method to control access to the Singleton instance.
-    static Singleton* getInstance() {
-        if (!instance)
-            instance = new Singleton;
+    static Singleton& getInstance()
+    {
+        static Singleton instance;
         return instance;
     }
+
+private:
+    Singleton()
+    {
+        std::cout << "Singleton constructor\n";
+    }
+    ~Singleton() = default;
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
 };
 
-// Initializing pointer to null.
-Singleton* Singleton::instance = nullptr;
+int main()
+{
+    // constructor should only be called once
+    Singleton& s1 = Singleton::getInstance();
+    Singleton& s2 = Singleton::getInstance();
 
-int main() {
-    // New instance will be created.
-    Singleton* instance1 = Singleton::getInstance();
-  
-    // New instance will not be created.
-    Singleton* instance2 = Singleton::getInstance();
+    // memory addresses should match
+    std::cout << &s1 << '\n';
+    std::cout << &s2 << '\n'; 
+
+    return 0;
 }
-
 ```
