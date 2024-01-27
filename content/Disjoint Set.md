@@ -98,7 +98,6 @@ public:
     }
 
     int find(int x) {
-        // has the path compression optimisation
         while (x != root[x]) {
             x = root[x];
         }
